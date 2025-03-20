@@ -3,11 +3,11 @@
 import { useState, useRef } from "react"
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Image, FlatList, Alert } from "react-native"
 import { useRouter, useNavigation } from "expo-router"
-import { LinearGradient } from "expo-linear-gradient"
 import { SafeAreaView } from "react-native-safe-area-context"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { StatusBar } from "expo-status-bar"
 import { Ionicons } from "@expo/vector-icons"
+import { LinearGradient } from "expo-linear-gradient"
 
 const { width, height } = Dimensions.get("window")
 
@@ -37,6 +37,7 @@ const slides = [
     image: require("../../assets/images/icon.png"),
   },
 ]
+
 export default function Onboarding() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const flatListRef = useRef<FlatList>(null)
@@ -84,7 +85,9 @@ export default function Onboarding() {
   const renderItem = ({ item }: { item: (typeof slides)[0] }) => {
     return (
       <View style={styles.slide}>
-        <Image source={item.image} style={styles.image} />
+        <LinearGradient colors={item.gradient} style={styles.imageContainer}>
+          <Image source={item.image} style={styles.image} />
+        </LinearGradient>
         <Text style={styles.title}>{item.title}</Text>
         <Text style={styles.description}>{item.description}</Text>
       </View>
@@ -98,7 +101,7 @@ export default function Onboarding() {
   }
 
   return (
-    <LinearGradient colors={["#4A00E0", "#8E2DE2"]} style={styles.container}>
+    <LinearGradient colors={["#000000", "#121212"]} style={styles.container}>
       <StatusBar style="light" />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.skipContainer}>
@@ -124,15 +127,24 @@ export default function Onboarding() {
               key={index}
               style={[
                 styles.indicator,
-                { backgroundColor: index === currentIndex ? "#FFFFFF" : "rgba(255, 255, 255, 0.4)" },
+                {
+                  backgroundColor: index === currentIndex ? "#FFFFFF" : "#333333",
+                },
               ]}
             />
           ))}
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleNext}>
-          <Text style={styles.buttonText}>{currentIndex === slides.length - 1 ? "Get Started" : "Next"}</Text>
-          <Ionicons name="arrow-forward" size={20} color="#4A00E0" />
+        <TouchableOpacity style={styles.buttonContainer} onPress={handleNext}>
+          <LinearGradient
+            colors={slides[currentIndex]?.gradient || ["#6a11cb", "#2575fc"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.button}
+          >
+            <Text style={styles.buttonText}>{currentIndex === slides.length - 1 ? "Get Started" : "Next"}</Text>
+            <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+          </LinearGradient>
         </TouchableOpacity>
       </SafeAreaView>
     </LinearGradient>
@@ -154,34 +166,42 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   skipText: {
-    color: "white",
     fontSize: 16,
     fontFamily: "Poppins-Medium",
+    color: "#FFFFFF",
   },
   slide: {
     width,
     alignItems: "center",
     padding: 20,
   },
-  image: {
+  imageContainer: {
     width: width * 0.8,
     height: height * 0.4,
-    resizeMode: "contain",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 20,
     marginBottom: 40,
+    padding: 20,
+  },
+  image: {
+    width: "80%",
+    height: "80%",
+    resizeMode: "contain",
   },
   title: {
     fontSize: 28,
     fontFamily: "Poppins-Bold",
-    color: "white",
     textAlign: "center",
     marginBottom: 16,
+    color: "#FFFFFF",
   },
   description: {
     fontSize: 16,
     fontFamily: "Poppins-Regular",
-    color: "white",
     textAlign: "center",
     paddingHorizontal: 20,
+    color: "#AAAAAA",
   },
   indicatorContainer: {
     flexDirection: "row",
@@ -194,27 +214,29 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginHorizontal: 5,
   },
-  button: {
-    backgroundColor: "white",
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 30,
+  buttonContainer: {
     marginHorizontal: 20,
     marginBottom: 20,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
+    borderRadius: 30,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 5,
   },
+  button: {
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   buttonText: {
-    color: "#4A00E0",
     fontSize: 18,
     fontFamily: "Poppins-Bold",
     marginRight: 8,
+    color: "#FFFFFF",
   },
 })
 

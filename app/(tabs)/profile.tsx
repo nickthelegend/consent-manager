@@ -1,104 +1,101 @@
+"use client"
+
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from "react-native"
-import { LinearGradient } from "expo-linear-gradient"
-import { SafeAreaView } from "react-native-safe-area-context"
 import { Ionicons, MaterialIcons } from "@expo/vector-icons"
 
 export default function Profile() {
+  // Replace the colorScheme and isDark variables with a forced dark theme
+  // Remove these lines:
+  // const colorScheme = useColorScheme()
+  // const isDark = colorScheme === "dark"
+
+  // Update the return statement to use black theme
   return (
-    <LinearGradient colors={["#4A00E0", "#8E2DE2"]} style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
-          <TouchableOpacity style={styles.settingsButton}>
-            <Ionicons name="settings-outline" size={24} color="white" />
+    <View style={[styles.container, { backgroundColor: "#000000" }]}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.profileSection}>
+          <View style={styles.profileImageContainer}>
+            <Image source={require("../../assets/images/icon.png")} style={styles.profileImage} />
+            <TouchableOpacity style={[styles.editImageButton, { backgroundColor: "#1E1E1E" }]}>
+              <Ionicons name="camera" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.profileName, { color: "#FFFFFF" }]}>John Doe</Text>
+          <Text style={[styles.profileEmail, { color: "#AAAAAA" }]}>john.doe@example.com</Text>
+          <TouchableOpacity style={[styles.editProfileButton, { backgroundColor: "#1E1E1E" }]}>
+            <Text style={[styles.editProfileText, { color: "#FFFFFF" }]}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          <View style={styles.profileSection}>
-            <View style={styles.profileImageContainer}>
-              <Image source={require("../../assets/images/icon.png")} style={styles.profileImage} />
-              <TouchableOpacity style={styles.editImageButton}>
-                <Ionicons name="camera" size={18} color="white" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.profileName}>John Doe</Text>
-            <Text style={styles.profileEmail}>john.doe@example.com</Text>
-            <TouchableOpacity style={styles.editProfileButton}>
-              <Text style={styles.editProfileText}>Edit Profile</Text>
-            </TouchableOpacity>
+        <View style={[styles.statsSection, { backgroundColor: "#121212" }]}>
+          <View style={styles.statItem}>
+            <Text style={[styles.statNumber, { color: "#FFFFFF" }]}>12</Text>
+            <Text style={[styles.statLabel, { color: "#AAAAAA" }]}>Consents</Text>
           </View>
-
-          <View style={styles.statsSection}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>12</Text>
-              <Text style={styles.statLabel}>Consents</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>8</Text>
-              <Text style={styles.statLabel}>Documents</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>3</Text>
-              <Text style={styles.statLabel}>Organizations</Text>
-            </View>
+          <View style={[styles.statDivider, { backgroundColor: "#1E1E1E" }]} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statNumber, { color: "#FFFFFF" }]}>8</Text>
+            <Text style={[styles.statLabel, { color: "#AAAAAA" }]}>Documents</Text>
           </View>
-
-          <View style={styles.menuSection}>
-            <TouchableOpacity style={styles.menuItem}>
-              <View style={styles.menuIconContainer}>
-                <Ionicons name="shield-checkmark" size={22} color="#4A00E0" />
-              </View>
-              <Text style={styles.menuText}>Privacy Settings</Text>
-              <MaterialIcons name="arrow-forward-ios" size={16} color="#888" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.menuItem}>
-              <View style={styles.menuIconContainer}>
-                <Ionicons name="notifications" size={22} color="#4A00E0" />
-              </View>
-              <Text style={styles.menuText}>Notification Preferences</Text>
-              <MaterialIcons name="arrow-forward-ios" size={16} color="#888" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.menuItem}>
-              <View style={styles.menuIconContainer}>
-                <Ionicons name="people" size={22} color="#4A00E0" />
-              </View>
-              <Text style={styles.menuText}>Connected Organizations</Text>
-              <MaterialIcons name="arrow-forward-ios" size={16} color="#888" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.menuItem}>
-              <View style={styles.menuIconContainer}>
-                <Ionicons name="lock-closed" size={22} color="#4A00E0" />
-              </View>
-              <Text style={styles.menuText}>Security</Text>
-              <MaterialIcons name="arrow-forward-ios" size={16} color="#888" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.menuItem}>
-              <View style={styles.menuIconContainer}>
-                <Ionicons name="help-circle" size={22} color="#4A00E0" />
-              </View>
-              <Text style={styles.menuText}>Help & Support</Text>
-              <MaterialIcons name="arrow-forward-ios" size={16} color="#888" />
-            </TouchableOpacity>
+          <View style={[styles.statDivider, { backgroundColor: "#1E1E1E" }]} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statNumber, { color: "#FFFFFF" }]}>3</Text>
+            <Text style={[styles.statLabel, { color: "#AAAAAA" }]}>Organizations</Text>
           </View>
+        </View>
 
-          <TouchableOpacity style={styles.logoutButton}>
-            <Ionicons name="log-out-outline" size={20} color="#FF6B6B" />
-            <Text style={styles.logoutText}>Log Out</Text>
+        <View style={styles.menuSection}>
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: "#121212" }]}>
+            <View style={[styles.menuIconContainer, { backgroundColor: "#1E1E1E" }]}>
+              <Ionicons name="shield-checkmark" size={22} color="#FFFFFF" />
+            </View>
+            <Text style={[styles.menuText, { color: "#FFFFFF" }]}>Privacy Settings</Text>
+            <MaterialIcons name="arrow-forward-ios" size={16} color="#AAAAAA" />
           </TouchableOpacity>
 
-          <View style={styles.versionContainer}>
-            <Text style={styles.versionText}>Version 1.0.0</Text>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </LinearGradient>
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: "#121212" }]}>
+            <View style={[styles.menuIconContainer, { backgroundColor: "#1E1E1E" }]}>
+              <Ionicons name="notifications" size={22} color="#FFFFFF" />
+            </View>
+            <Text style={[styles.menuText, { color: "#FFFFFF" }]}>Notification Preferences</Text>
+            <MaterialIcons name="arrow-forward-ios" size={16} color="#AAAAAA" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: "#121212" }]}>
+            <View style={[styles.menuIconContainer, { backgroundColor: "#1E1E1E" }]}>
+              <Ionicons name="people" size={22} color="#FFFFFF" />
+            </View>
+            <Text style={[styles.menuText, { color: "#FFFFFF" }]}>Connected Organizations</Text>
+            <MaterialIcons name="arrow-forward-ios" size={16} color="#AAAAAA" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: "#121212" }]}>
+            <View style={[styles.menuIconContainer, { backgroundColor: "#1E1E1E" }]}>
+              <Ionicons name="lock-closed" size={22} color="#FFFFFF" />
+            </View>
+            <Text style={[styles.menuText, { color: "#FFFFFF" }]}>Security</Text>
+            <MaterialIcons name="arrow-forward-ios" size={16} color="#AAAAAA" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.menuItem, { backgroundColor: "#121212" }]}>
+            <View style={[styles.menuIconContainer, { backgroundColor: "#1E1E1E" }]}>
+              <Ionicons name="help-circle" size={22} color="#FFFFFF" />
+            </View>
+            <Text style={[styles.menuText, { color: "#FFFFFF" }]}>Help & Support</Text>
+            <MaterialIcons name="arrow-forward-ios" size={16} color="#AAAAAA" />
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity style={[styles.logoutButton, { backgroundColor: "#121212" }]}>
+          <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
+          <Text style={[styles.logoutText, { color: "#FFFFFF" }]}>Log Out</Text>
+        </TouchableOpacity>
+
+        <View style={styles.versionContainer}>
+          <Text style={[styles.versionText, { color: "#777777" }]}>Version 1.0.0</Text>
+        </View>
+      </ScrollView>
+    </View>
   )
 }
 
@@ -119,18 +116,17 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontFamily: "Poppins-Bold",
-    color: "white",
   },
   settingsButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
   },
   scrollView: {
     flex: 1,
+    paddingTop: 20,
   },
   profileSection: {
     alignItems: "center",
@@ -151,7 +147,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     right: 0,
-    backgroundColor: "#4A00E0",
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -163,30 +158,25 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 22,
     fontFamily: "Poppins-Bold",
-    color: "white",
     marginBottom: 5,
   },
   profileEmail: {
     fontSize: 14,
     fontFamily: "Poppins-Regular",
-    color: "rgba(255, 255, 255, 0.8)",
     marginBottom: 15,
   },
   editProfileButton: {
     paddingHorizontal: 20,
     paddingVertical: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 20,
   },
   editProfileText: {
-    color: "white",
     fontFamily: "Poppins-Medium",
     fontSize: 14,
   },
   statsSection: {
     flexDirection: "row",
     justifyContent: "space-around",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
     marginHorizontal: 20,
     borderRadius: 12,
     paddingVertical: 15,
@@ -198,17 +188,14 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 22,
     fontFamily: "Poppins-Bold",
-    color: "white",
   },
   statLabel: {
     fontSize: 14,
     fontFamily: "Poppins-Regular",
-    color: "rgba(255, 255, 255, 0.8)",
   },
   statDivider: {
     width: 1,
     height: "70%",
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
   },
   menuSection: {
     marginTop: 25,
@@ -217,7 +204,6 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
     borderRadius: 12,
     padding: 15,
     marginBottom: 10,
@@ -231,7 +217,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(74, 0, 224, 0.1)",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 15,
@@ -240,13 +225,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontFamily: "Poppins-Medium",
-    color: "#333",
   },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "white",
     borderRadius: 12,
     padding: 15,
     marginHorizontal: 20,
@@ -256,7 +239,6 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 16,
     fontFamily: "Poppins-Medium",
-    color: "#FF6B6B",
     marginLeft: 10,
   },
   versionContainer: {
@@ -267,7 +249,6 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 12,
     fontFamily: "Poppins-Regular",
-    color: "rgba(255, 255, 255, 0.6)",
   },
 })
 

@@ -1,104 +1,110 @@
+"use client"
+
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native"
-import { LinearGradient } from "expo-linear-gradient"
-import { SafeAreaView } from "react-native-safe-area-context"
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
+import { LinearGradient } from "expo-linear-gradient"
 
 export default function Dashboard() {
   return (
-    <LinearGradient colors={["#4A00E0", "#8E2DE2"]} style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Consent Dashboard</Text>
-          <TouchableOpacity style={styles.notificationButton}>
-            <Ionicons name="notifications" size={24} color="white" />
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          <View style={styles.statsContainer}>
-            <View style={styles.statCard}>
-              <LinearGradient
-                colors={["#FF6B6B", "#FF8E8E"]}
-                style={styles.statGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <MaterialCommunityIcons name="file-document-outline" size={28} color="white" />
-                <Text style={styles.statNumber}>12</Text>
-                <Text style={styles.statLabel}>Active Consents</Text>
-              </LinearGradient>
-            </View>
-
-            <View style={styles.statCard}>
-              <LinearGradient
-                colors={["#4ECDC4", "#26A69A"]}
-                style={styles.statGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <MaterialCommunityIcons name="clock-outline" size={28} color="white" />
-                <Text style={styles.statNumber}>3</Text>
-                <Text style={styles.statLabel}>Pending Review</Text>
-              </LinearGradient>
-            </View>
+    <LinearGradient colors={["#000000", "#121212"]} style={styles.container}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <LinearGradient
+              colors={["#4a00e0", "#8e2de2"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.statGradient}
+            >
+              <MaterialCommunityIcons name="file-document-outline" size={28} color="#FFFFFF" />
+              <Text style={styles.statNumber}>12</Text>
+              <Text style={styles.statLabel}>Active Consents</Text>
+            </LinearGradient>
           </View>
 
-          <View style={styles.recentActivityContainer}>
-            <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <View style={styles.statCard}>
+            <LinearGradient
+              colors={["#00b09b", "#96c93d"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.statGradient}
+            >
+              <MaterialCommunityIcons name="clock-outline" size={28} color="#FFFFFF" />
+              <Text style={styles.statNumber}>3</Text>
+              <Text style={styles.statLabel}>Pending Review</Text>
+            </LinearGradient>
+          </View>
+        </View>
 
-            <View style={styles.activityCard}>
+        <View style={styles.recentActivityContainer}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+
+          <View style={styles.activityCard}>
+            <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.activityCardGradient}>
               <View style={styles.activityIconContainer}>
-                <Ionicons name="checkmark-circle" size={24} color="#4ECDC4" />
+                <LinearGradient colors={["#00c6ff", "#0072ff"]} style={styles.activityIconGradient}>
+                  <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+                </LinearGradient>
               </View>
               <View style={styles.activityContent}>
                 <Text style={styles.activityTitle}>Medical Data Consent</Text>
                 <Text style={styles.activitySubtitle}>Approved • 2 days ago</Text>
               </View>
-            </View>
+            </LinearGradient>
+          </View>
 
-            <View style={styles.activityCard}>
+          <View style={styles.activityCard}>
+            <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.activityCardGradient}>
               <View style={styles.activityIconContainer}>
-                <Ionicons name="time" size={24} color="#FFD166" />
+                <LinearGradient colors={["#ff9966", "#ff5e62"]} style={styles.activityIconGradient}>
+                  <Ionicons name="time" size={24} color="#FFFFFF" />
+                </LinearGradient>
               </View>
               <View style={styles.activityContent}>
                 <Text style={styles.activityTitle}>Research Participation</Text>
                 <Text style={styles.activitySubtitle}>Pending • 3 days ago</Text>
               </View>
-            </View>
+            </LinearGradient>
+          </View>
 
-            <View style={styles.activityCard}>
+          <View style={styles.activityCard}>
+            <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.activityCardGradient}>
               <View style={styles.activityIconContainer}>
-                <Ionicons name="close-circle" size={24} color="#FF6B6B" />
+                <LinearGradient colors={["#fc4a1a", "#f7b733"]} style={styles.activityIconGradient}>
+                  <Ionicons name="close-circle" size={24} color="#FFFFFF" />
+                </LinearGradient>
               </View>
               <View style={styles.activityContent}>
                 <Text style={styles.activityTitle}>Marketing Communications</Text>
                 <Text style={styles.activitySubtitle}>Declined • 1 week ago</Text>
               </View>
-            </View>
+            </LinearGradient>
           </View>
+        </View>
 
-          <View style={styles.upcomingContainer}>
-            <Text style={styles.sectionTitle}>Upcoming Expirations</Text>
+        <View style={styles.upcomingContainer}>
+          <Text style={styles.sectionTitle}>Upcoming Expirations</Text>
 
-            <View style={styles.expirationCard}>
-              <LinearGradient
-                colors={["#FFD166", "#F4A261"]}
-                style={styles.expirationGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <View style={styles.expirationContent}>
-                  <Text style={styles.expirationTitle}>Data Processing Consent</Text>
-                  <Text style={styles.expirationDate}>Expires in 5 days</Text>
-                </View>
-                <TouchableOpacity style={styles.renewButton}>
+          <View style={styles.expirationCard}>
+            <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.expirationGradient}>
+              <View style={styles.expirationContent}>
+                <Text style={styles.expirationTitle}>Data Processing Consent</Text>
+                <Text style={styles.expirationDate}>Expires in 5 days</Text>
+              </View>
+              <TouchableOpacity>
+                <LinearGradient
+                  colors={["#6a11cb", "#2575fc"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.renewButton}
+                >
                   <Text style={styles.renewButtonText}>Renew</Text>
-                </TouchableOpacity>
-              </LinearGradient>
-            </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            </LinearGradient>
           </View>
-        </ScrollView>
-      </SafeAreaView>
+        </View>
+      </ScrollView>
     </LinearGradient>
   )
 }
@@ -120,18 +126,18 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontFamily: "Poppins-Bold",
-    color: "white",
+    color: "#FFFFFF",
   },
   notificationButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
   },
   scrollView: {
     flex: 1,
+    paddingTop: 20,
   },
   statsContainer: {
     flexDirection: "row",
@@ -145,7 +151,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 5,
   },
@@ -156,13 +162,13 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 32,
     fontFamily: "Poppins-Bold",
-    color: "white",
     marginTop: 10,
+    color: "#FFFFFF",
   },
   statLabel: {
     fontSize: 14,
     fontFamily: "Poppins-Medium",
-    color: "white",
+    color: "#FFFFFF",
     opacity: 0.9,
   },
   recentActivityContainer: {
@@ -172,25 +178,33 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontFamily: "Poppins-Bold",
-    color: "white",
     marginBottom: 15,
+    color: "#FFFFFF",
   },
   activityCard: {
+    borderRadius: 12,
+    marginBottom: 10,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  activityCardGradient: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 12,
     padding: 15,
-    marginBottom: 10,
   },
   activityIconContainer: {
+    marginRight: 15,
+  },
+  activityIconGradient: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 15,
   },
   activityContent: {
     flex: 1,
@@ -198,12 +212,12 @@ const styles = StyleSheet.create({
   activityTitle: {
     fontSize: 16,
     fontFamily: "Poppins-Medium",
-    color: "white",
+    color: "#FFFFFF",
   },
   activitySubtitle: {
     fontSize: 14,
     fontFamily: "Poppins-Regular",
-    color: "rgba(255, 255, 255, 0.7)",
+    color: "#AAAAAA",
   },
   upcomingContainer: {
     marginTop: 30,
@@ -217,7 +231,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 5,
-    elevation: 5,
+    elevation: 3,
   },
   expirationGradient: {
     flexDirection: "row",
@@ -231,15 +245,14 @@ const styles = StyleSheet.create({
   expirationTitle: {
     fontSize: 16,
     fontFamily: "Poppins-Medium",
-    color: "white",
+    color: "#FFFFFF",
   },
   expirationDate: {
     fontSize: 14,
     fontFamily: "Poppins-Regular",
-    color: "rgba(255, 255, 255, 0.8)",
+    color: "#AAAAAA",
   },
   renewButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 20,
@@ -247,7 +260,7 @@ const styles = StyleSheet.create({
   renewButtonText: {
     fontSize: 14,
     fontFamily: "Poppins-Medium",
-    color: "white",
+    color: "#FFFFFF",
   },
 })
 
