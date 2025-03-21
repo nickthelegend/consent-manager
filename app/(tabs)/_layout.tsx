@@ -303,10 +303,10 @@ const styles = StyleSheet.create({
   },
   activeTabIndicator: {
     position: 'absolute',
-    top: 0,
-    height: 4,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 4,
+    // top: 0,
+    // height: 4,
+    // backgroundColor: '#FFFFFF',                   {Uncomment this for other stuff}
+    // borderRadius: 4,
   },
   tabButtonsContainer: {
     flex: 1,
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   activeTabIconContainer: {
-    backgroundColor: 'rgba(40, 40, 50, 0.8)',
+    // backgroundColor: 'rgba(40, 40, 50, 0.8)',
     borderRadius: 20, // Increased radius
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
