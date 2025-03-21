@@ -4,18 +4,29 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-nati
 import { Ionicons, MaterialIcons } from "@expo/vector-icons"
 import { useNavigation } from "expo-router"
 import { LinearGradient } from "expo-linear-gradient"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 export default function DAOProposal() {
   const navigation = useNavigation()
+  const insets = useSafeAreaInsets()
 
   return (
     <LinearGradient colors={["#000000", "#121212"]} style={styles.container}>
-      <LinearGradient colors={["#1a1a1a", "#000000"]} style={styles.header}>
+      <View style={[styles.header, { marginTop: insets.top }]}>
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={() => {
+            // @ts-ignore
+            navigation.openDrawer()
+          }}
+        >
+          <Ionicons name="menu-outline" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>DAO Proposals</Text>
         <TouchableOpacity style={styles.filterButton}>
           <Ionicons name="filter" size={24} color="#FFFFFF" />
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.statsContainer}>
@@ -125,6 +136,12 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: "#333333",
+  },
+  menuButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 20,

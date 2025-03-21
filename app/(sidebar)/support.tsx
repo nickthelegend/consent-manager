@@ -1,15 +1,15 @@
 "use client"
 
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, useColorScheme } from "react-native"
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { useState } from "react"
 import { useNavigation } from "expo-router"
+import { LinearGradient } from "expo-linear-gradient"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 export default function Support() {
-  const colorScheme = useColorScheme()
-  const isDark = colorScheme === "dark"
   const navigation = useNavigation()
-
+  const insets = useSafeAreaInsets()
   const [searchQuery, setSearchQuery] = useState("")
 
   const faqs = [
@@ -59,119 +59,121 @@ export default function Support() {
     : faqs
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? "#121212" : "#FFFFFF" }]}>
-      <View style={[styles.header, { backgroundColor: isDark ? "#1E1E1E" : "#F5F5F5" }]}>
-        <Text style={[styles.headerTitle, { color: isDark ? "#FFFFFF" : "#000000" }]}>Support</Text>
+    <LinearGradient colors={["#000000", "#121212"]} style={styles.container}>
+      <View style={[styles.header, { marginTop: insets.top }]}>
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={() => {
+            // @ts-ignore
+            navigation.openDrawer()
+          }}
+        >
+          <Ionicons name="menu-outline" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Support</Text>
+        <View style={styles.rightPlaceholder} />
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.searchContainer}>
-          <View
-            style={[
-              styles.searchInputContainer,
-              { backgroundColor: isDark ? "#1E1E1E" : "#F5F5F5", borderColor: isDark ? "#333333" : "#E0E0E0" },
-            ]}
-          >
-            <Ionicons name="search" size={20} color={isDark ? "#AAAAAA" : "#666666"} style={styles.searchIcon} />
+          <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.searchInputContainer}>
+            <Ionicons name="search" size={20} color="#AAAAAA" style={styles.searchIcon} />
             <TextInput
-              style={[styles.searchInput, { color: isDark ? "#FFFFFF" : "#000000" }]}
+              style={styles.searchInput}
               placeholder="Search for help..."
-              placeholderTextColor={isDark ? "#777777" : "#999999"}
+              placeholderTextColor="#777777"
               value={searchQuery}
               onChangeText={setSearchQuery}
+              selectionColor="#FFFFFF"
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery("")}>
-                <Ionicons name="close-circle" size={20} color={isDark ? "#AAAAAA" : "#666666"} />
+                <Ionicons name="close-circle" size={20} color="#AAAAAA" />
               </TouchableOpacity>
             )}
-          </View>
+          </LinearGradient>
         </View>
 
         <View style={styles.supportOptionsContainer}>
-          <Text style={[styles.sectionTitle, { color: isDark ? "#FFFFFF" : "#000000" }]}>How can we help you?</Text>
+          <Text style={styles.sectionTitle}>How can we help you?</Text>
 
           <View style={styles.supportOptionsGrid}>
-            <TouchableOpacity style={[styles.supportOptionCard, { backgroundColor: isDark ? "#1E1E1E" : "#F5F5F5" }]}>
-              <View style={[styles.supportOptionIcon, { backgroundColor: isDark ? "#333333" : "#E0E0E0" }]}>
-                <Ionicons name="document-text" size={24} color={isDark ? "#FFFFFF" : "#000000"} />
-              </View>
-              <Text style={[styles.supportOptionText, { color: isDark ? "#FFFFFF" : "#000000" }]}>User Guide</Text>
+            <TouchableOpacity style={styles.supportOptionCard}>
+              <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.supportOptionCardGradient}>
+                <LinearGradient colors={["#4a00e0", "#8e2de2"]} style={styles.supportOptionIcon}>
+                  <Ionicons name="document-text" size={24} color="#FFFFFF" />
+                </LinearGradient>
+                <Text style={styles.supportOptionText}>User Guide</Text>
+              </LinearGradient>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.supportOptionCard, { backgroundColor: isDark ? "#1E1E1E" : "#F5F5F5" }]}>
-              <View style={[styles.supportOptionIcon, { backgroundColor: isDark ? "#333333" : "#E0E0E0" }]}>
-                <Ionicons name="chatbubble-ellipses" size={24} color={isDark ? "#FFFFFF" : "#000000"} />
-              </View>
-              <Text style={[styles.supportOptionText, { color: isDark ? "#FFFFFF" : "#000000" }]}>Live Chat</Text>
+            <TouchableOpacity style={styles.supportOptionCard}>
+              <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.supportOptionCardGradient}>
+                <LinearGradient colors={["#00b09b", "#96c93d"]} style={styles.supportOptionIcon}>
+                  <Ionicons name="chatbubble-ellipses" size={24} color="#FFFFFF" />
+                </LinearGradient>
+                <Text style={styles.supportOptionText}>Live Chat</Text>
+              </LinearGradient>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.supportOptionCard, { backgroundColor: isDark ? "#1E1E1E" : "#F5F5F5" }]}>
-              <View style={[styles.supportOptionIcon, { backgroundColor: isDark ? "#333333" : "#E0E0E0" }]}>
-                <Ionicons name="mail" size={24} color={isDark ? "#FFFFFF" : "#000000"} />
-              </View>
-              <Text style={[styles.supportOptionText, { color: isDark ? "#FFFFFF" : "#000000" }]}>Email Support</Text>
+            <TouchableOpacity style={styles.supportOptionCard}>
+              <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.supportOptionCardGradient}>
+                <LinearGradient colors={["#ff9966", "#ff5e62"]} style={styles.supportOptionIcon}>
+                  <Ionicons name="mail" size={24} color="#FFFFFF" />
+                </LinearGradient>
+                <Text style={styles.supportOptionText}>Email Support</Text>
+              </LinearGradient>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.supportOptionCard, { backgroundColor: isDark ? "#1E1E1E" : "#F5F5F5" }]}>
-              <View style={[styles.supportOptionIcon, { backgroundColor: isDark ? "#333333" : "#E0E0E0" }]}>
-                <Ionicons name="videocam" size={24} color={isDark ? "#FFFFFF" : "#000000"} />
-              </View>
-              <Text style={[styles.supportOptionText, { color: isDark ? "#FFFFFF" : "#000000" }]}>Video Tutorials</Text>
+            <TouchableOpacity style={styles.supportOptionCard}>
+              <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.supportOptionCardGradient}>
+                <LinearGradient colors={["#6a11cb", "#2575fc"]} style={styles.supportOptionIcon}>
+                  <Ionicons name="videocam" size={24} color="#FFFFFF" />
+                </LinearGradient>
+                <Text style={styles.supportOptionText}>Video Tutorials</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.faqContainer}>
-          <Text style={[styles.sectionTitle, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-            Frequently Asked Questions
-          </Text>
+          <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
 
           {filteredFaqs.length > 0 ? (
             filteredFaqs.map((faq, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[styles.faqItem, { backgroundColor: isDark ? "#1E1E1E" : "#F5F5F5" }]}
-                onPress={() => toggleFaq(index)}
-              >
-                <View style={styles.faqHeader}>
-                  <Text style={[styles.faqQuestion, { color: isDark ? "#FFFFFF" : "#000000" }]}>{faq.question}</Text>
-                  <Ionicons
-                    name={expandedFaq === index ? "chevron-up" : "chevron-down"}
-                    size={20}
-                    color={isDark ? "#FFFFFF" : "#000000"}
-                  />
-                </View>
+              <TouchableOpacity key={index} style={styles.faqItem} onPress={() => toggleFaq(index)}>
+                <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.faqItemGradient}>
+                  <View style={styles.faqHeader}>
+                    <Text style={styles.faqQuestion}>{faq.question}</Text>
+                    <Ionicons name={expandedFaq === index ? "chevron-up" : "chevron-down"} size={20} color="#FFFFFF" />
+                  </View>
 
-                {expandedFaq === index && (
-                  <Text style={[styles.faqAnswer, { color: isDark ? "#AAAAAA" : "#666666" }]}>{faq.answer}</Text>
-                )}
+                  {expandedFaq === index && <Text style={styles.faqAnswer}>{faq.answer}</Text>}
+                </LinearGradient>
               </TouchableOpacity>
             ))
           ) : (
-            <View style={[styles.noResultsContainer, { backgroundColor: isDark ? "#1E1E1E" : "#F5F5F5" }]}>
-              <Ionicons name="search-outline" size={40} color={isDark ? "#777777" : "#999999"} />
-              <Text style={[styles.noResultsText, { color: isDark ? "#FFFFFF" : "#000000" }]}>No results found</Text>
-              <Text style={[styles.noResultsSubtext, { color: isDark ? "#AAAAAA" : "#666666" }]}>
-                Try different keywords or contact our support team
-              </Text>
-            </View>
+            <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.noResultsContainer}>
+              <Ionicons name="search-outline" size={40} color="#777777" />
+              <Text style={styles.noResultsText}>No results found</Text>
+              <Text style={styles.noResultsSubtext}>Try different keywords or contact our support team</Text>
+            </LinearGradient>
           )}
         </View>
 
         <View style={styles.contactSupportContainer}>
           <TouchableOpacity
-            style={[styles.contactSupportButton, { backgroundColor: isDark ? "#333333" : "#E0E0E0" }]}
-            onPress={() => navigation.navigate("contact" as never)}
+            style={styles.contactSupportButtonContainer}
+            onPress={() => navigation.navigate("(sidebar)/contact" as never)}
           >
-            <Text style={[styles.contactSupportText, { color: isDark ? "#FFFFFF" : "#000000" }]}>
-              Contact Support Team
-            </Text>
-            <Ionicons name="arrow-forward" size={18} color={isDark ? "#FFFFFF" : "#000000"} />
+            <LinearGradient colors={["#6a11cb", "#2575fc"]} style={styles.contactSupportButton}>
+              <Text style={styles.contactSupportText}>Contact Support Team</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </View>
+    </LinearGradient>
   )
 }
 
@@ -186,11 +188,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    borderBottomColor: "#333333",
+  },
+  menuButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 20,
     fontFamily: "Poppins-Bold",
+    color: "#FFFFFF",
+  },
+  rightPlaceholder: {
+    width: 40,
   },
   scrollView: {
     flex: 1,
@@ -204,6 +216,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
+    borderColor: "#333333",
     borderRadius: 8,
     paddingHorizontal: 15,
     height: 50,
@@ -216,6 +229,7 @@ const styles = StyleSheet.create({
     height: 50,
     fontFamily: "Poppins-Regular",
     fontSize: 14,
+    color: "#FFFFFF",
   },
   supportOptionsContainer: {
     paddingHorizontal: 20,
@@ -225,6 +239,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: "Poppins-Bold",
     marginBottom: 15,
+    color: "#FFFFFF",
   },
   supportOptionsGrid: {
     flexDirection: "row",
@@ -234,9 +249,17 @@ const styles = StyleSheet.create({
   supportOptionCard: {
     width: "48%",
     borderRadius: 12,
+    marginBottom: 15,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  supportOptionCardGradient: {
     padding: 15,
     alignItems: "center",
-    marginBottom: 15,
   },
   supportOptionIcon: {
     width: 50,
@@ -250,6 +273,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Poppins-Medium",
     textAlign: "center",
+    color: "#FFFFFF",
   },
   faqContainer: {
     paddingHorizontal: 20,
@@ -259,25 +283,33 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 10,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  faqItemGradient: {
+    padding: 15,
   },
   faqHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 15,
   },
   faqQuestion: {
     fontSize: 16,
     fontFamily: "Poppins-Medium",
     flex: 1,
     marginRight: 10,
+    color: "#FFFFFF",
   },
   faqAnswer: {
     fontSize: 14,
     fontFamily: "Poppins-Regular",
     lineHeight: 22,
-    padding: 15,
-    paddingTop: 0,
+    marginTop: 15,
+    color: "#AAAAAA",
   },
   noResultsContainer: {
     padding: 30,
@@ -289,27 +321,33 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Medium",
     marginTop: 15,
     marginBottom: 5,
+    color: "#FFFFFF",
   },
   noResultsSubtext: {
     fontSize: 14,
     fontFamily: "Poppins-Regular",
     textAlign: "center",
+    color: "#AAAAAA",
   },
   contactSupportContainer: {
     paddingHorizontal: 20,
     marginBottom: 40,
+  },
+  contactSupportButtonContainer: {
+    borderRadius: 8,
+    overflow: "hidden",
   },
   contactSupportButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     height: 50,
-    borderRadius: 8,
   },
   contactSupportText: {
     fontSize: 16,
     fontFamily: "Poppins-Medium",
     marginRight: 10,
+    color: "#FFFFFF",
   },
 })
 

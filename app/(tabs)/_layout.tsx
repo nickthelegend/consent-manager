@@ -9,6 +9,7 @@ import { DrawerToggleButton } from "@react-navigation/drawer"
 import { LinearGradient } from "expo-linear-gradient"
 import { BlurView } from "expo-blur"
 import Svg, { Path, Defs, LinearGradient as SvgGradient, Stop } from "react-native-svg"
+import { StatusBar } from "expo-status-bar"
 
 const { width } = Dimensions.get("window")
 
@@ -95,6 +96,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
   return (
     <View style={[styles.tabBarContainer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
       <BlurView intensity={30} tint="dark" style={styles.blurView}>
+        {/* <StatusBar hidden={true}/> */}
         <LinearGradient
           colors={["rgba(25, 25, 30, 0.9)", "rgba(15, 15, 20, 0.95)"]}
           style={styles.tabBarGradient}

@@ -292,6 +292,7 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: "center",
     marginBottom: 10,
+    marginTop:20
   },
   logoContainer: {
     marginBottom: 16,
