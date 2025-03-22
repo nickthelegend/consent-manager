@@ -22,9 +22,12 @@ import DateTimePicker from "@react-native-community/datetimepicker"
 import { Picker } from "@react-native-picker/picker"
 
 // Initialize Supabase client
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || ""
-const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ""
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://uorbdplqtxmcdhbnkbmf.supabase.co"
+const supabaseKey =
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmJkcGxxdHhtY2RoYm5rYm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2MjE0MTIsImV4cCI6MjA1ODE5NzQxMn0.h01gicHiW7yTjqT2JWCSYRmLAIzBMOlPg-kIy6q8Kk0"
 const supabase = createClient(supabaseUrl, supabaseKey)
+
 
 export default function CreateConsent() {
   const params = useLocalSearchParams()
@@ -159,14 +162,52 @@ export default function CreateConsent() {
       if (document?.file_url) {
         const expirySeconds = expiryEnabled ? Math.floor((expiryDate.getTime() - Date.now()) / 1000) : 31536000 // 1 year if no expiry
 
-        const path = document.file_url.split("/").pop()
-        const { data, error } = await supabase.storage.from("documents").createSignedUrl(path, expirySeconds)
-
-        if (error) {
-          throw new Error(`Failed to create signed URL: ${error.message}`)
+        // Extract the path correctly from the URL
+        // The URL format is: https://[project-ref].supabase.co/storage/v1/object/public/documents/userId/fileName
+        try {
+          // Log the full URL for debugging
+          console.log("Full file URL:", document.file_url);
+        
+          // Parse the URL to get just the path part after the bucket name
+          const url = new URL(document.file_url);
+          const pathParts = url.pathname.split("/");
+        
+          // Find the index of 'documents' in the path
+          const documentsIndex = pathParts.findIndex((part) => part === "documents");
+        
+          if (documentsIndex === -1) {
+            throw new Error("Invalid file URL format: bucket name not found");
+          }
+        
+          // Get all parts after 'documents' to form the correct path
+          const path = pathParts.slice(documentsIndex + 1).join("/");
+          console.log("Extracted storage path for signed URL:", path);
+        
+          // Check if the file exists before creating a signed URL
+          const { data: fileCheck, error: fileCheckError } = await supabase.storage.from("documents").list(pathParts[documentsIndex]);
+        
+          if (fileCheckError) {
+            console.error("Error checking file existence:", fileCheckError);
+            throw new Error(`Failed to check file existence: ${fileCheckError.message}`);
+          }
+        
+          // Log the files in the bucket for debugging
+          console.log("Files in the bucket:", fileCheck);
+        
+          // Create the signed URL
+          const { data, error } = await supabase.storage.from("documents").createSignedUrl(path, expirySeconds);
+        
+          if (error) {
+            console.error("Signed URL error:", error);
+            throw new Error(`Failed to create signed URL: ${error.message}`);
+          }
+        
+          signedUrl = data.signedUrl;
+          console.log("Successfully created signed URL:", signedUrl);
+        } catch (error) {
+          console.error("Error parsing file URL:", error);
+          throw new Error(`Failed to process file URL: ${error.message}`);
         }
-
-        signedUrl = data.signedUrl
       }
 
       // Create consent record
