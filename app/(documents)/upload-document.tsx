@@ -17,7 +17,6 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { LinearGradient } from "expo-linear-gradient"
 import { Ionicons, FontAwesome5 } from "@expo/vector-icons"
 import { router } from "expo-router"
-import * as SecureStore from "expo-secure-store"
 import { createClient } from "@supabase/supabase-js"
 import * as DocumentPicker from "expo-document-picker"
 import * as FileSystem from "expo-file-system"
@@ -26,7 +25,9 @@ import { Picker } from "@react-native-picker/picker"
 
 // Initialize Supabase client
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://uorbdplqtxmcdhbnkbmf.supabase.co"
-const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmJkcGxxdHhtY2RoYm5rYm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2MjE0MTIsImV4cCI6MjA1ODE5NzQxMn0.h01gicHiW7yTjqT2JWCSYRmLAIzBMOlPg-kIy6q8Kk0"
+const supabaseKey =
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmJkcGxxdHhtY2RoYm5rYm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2MjE0MTIsImV4cCI6MjA1ODE5NzQxMn0.h01gicHiW7yTjqT2JWCSYRmLAIzBMOlPg-kIy6q8Kk0"
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 // Document categories
@@ -38,6 +39,9 @@ const DOCUMENT_CATEGORIES = [
   { label: "Marketing", value: "marketing" },
   { label: "Other", value: "other" },
 ]
+
+// Import getStoredSession utility
+import { getStoredSession, getWalletAddress } from "../../utils/secure-storage"
 
 export default function UploadDocument() {
   const [title, setTitle] = useState("")
@@ -53,21 +57,31 @@ export default function UploadDocument() {
   useEffect(() => {
     const getStoredData = async () => {
       try {
-        const address = await SecureStore.getItemAsync("walletAddress")
+        // Get wallet address from secure storage
+        const address = await getWalletAddress()
         if (address) {
           setWalletAddress(address)
         }
 
-        // Get user session from Supabase
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession()
-        if (session?.user?.id) {
-          setUserId(session.user.id)
+        // Get the stored session
+        const session = await getStoredSession()
+
+        if (session) {
+          // Set the auth token
+          supabase.auth.setSession(session)
+
+          // Set user ID from session
+          if (session.user?.id) {
+            setUserId(session.user.id)
+          }
+        } else {
+          console.error("No session found")
+          Alert.alert("Error", "You are not logged in")
+          router.back()
         }
       } catch (error) {
         console.error("Error fetching stored data:", error)
+        Alert.alert("Error", "Failed to load user data")
       }
     }
 
@@ -139,6 +153,18 @@ export default function UploadDocument() {
     setUploadProgress(0)
 
     try {
+      // Get the stored session to ensure we have the latest auth token
+      const session = await getStoredSession()
+
+      if (!session) {
+        Alert.alert("Error", "Your session has expired. Please log in again.")
+        setIsUploading(false)
+        return
+      }
+
+      // Set the auth token
+      supabase.auth.setSession(session)
+
       // Generate a unique file name
       const fileExt = selectedFile.name.split(".").pop()
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`

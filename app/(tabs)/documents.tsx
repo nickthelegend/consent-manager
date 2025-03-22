@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import {
   View,
   Text,
@@ -10,16 +10,20 @@ import {
   RefreshControl,
   FlatList,
   Dimensions,
+  Modal,
+  Alert,
 } from "react-native"
 import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { router } from "expo-router"
 import { createClient } from "@supabase/supabase-js"
-import * as SecureStore from "expo-secure-store"
+import { getStoredSession, getWalletAddress } from "../../utils/secure-storage"
 
 // Initialize Supabase client
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://uorbdplqtxmcdhbnkbmf.supabase.co"
-const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmJkcGxxdHhtY2RoYm5rYm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2MjE0MTIsImV4cCI6MjA1ODE5NzQxMn0.h01gicHiW7yTjqT2JWCSYRmLAIzBMOlPg-kIy6q8Kk0"
+const supabaseKey =
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmJkcGxxdHhtY2RoYm5rYm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2MjE0MTIsImV4cCI6MjA1ODE5NzQxMn0.h01gicHiW7yTjqT2JWCSYRmLAIzBMOlPg-kIy6q8Kk0"
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 const { width } = Dimensions.get("window")
@@ -43,21 +47,32 @@ export default function Documents() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [walletAddress, setWalletAddress] = useState("")
+  const [userId, setUserId] = useState("")
+  const [selectedDocument, setSelectedDocument] = useState(null)
+  const [menuVisible, setMenuVisible] = useState(false)
+  const menuPositionRef = useRef({ x: 0, y: 0 })
 
-  // Fetch wallet address from secure storage
+  // Fetch wallet address and user ID from secure storage
   useEffect(() => {
-    const getWalletAddress = async () => {
+    const getStoredData = async () => {
       try {
-        const address = await SecureStore.getItemAsync("walletAddress")
+        // Get wallet address
+        const address = await getWalletAddress()
         if (address) {
           setWalletAddress(address)
         }
+
+        // Get session for user ID
+        const session = await getStoredSession()
+        if (session?.user?.id) {
+          setUserId(session.user.id)
+        }
       } catch (error) {
-        console.error("Error fetching wallet address:", error)
+        console.error("Error fetching stored data:", error)
       }
     }
 
-    getWalletAddress()
+    getStoredData()
   }, [])
 
   // Fetch documents from Supabase
@@ -105,6 +120,70 @@ export default function Documents() {
     router.push("/(documents)/upload-document")
   }
 
+  // Handle document menu press
+  const handleMenuPress = (document, event) => {
+    setSelectedDocument(document)
+    setMenuVisible(true)
+  }
+
+  // Handle create consent
+  const handleCreateConsent = () => {
+    setMenuVisible(false)
+    if (selectedDocument) {
+      router.push({
+        pathname: "/(documents)/create-consent",
+        params: { documentId: selectedDocument.id },
+      })
+    }
+  }
+
+  // Handle view document
+  const handleViewDocument = () => {
+    setMenuVisible(false)
+    // Implement view document functionality
+    Alert.alert("View Document", "Document viewing functionality will be implemented here.")
+  }
+
+  // Handle delete document
+  const handleDeleteDocument = async () => {
+    setMenuVisible(false)
+
+    if (!selectedDocument) return
+
+    Alert.alert("Delete Document", "Are you sure you want to delete this document?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            setLoading(true)
+
+            // Delete from database
+            const { error } = await supabase.from("user_uploads").delete().eq("id", selectedDocument.id)
+
+            if (error) {
+              throw error
+            }
+
+            // Refresh documents list
+            fetchDocuments()
+
+            Alert.alert("Success", "Document deleted successfully")
+          } catch (error) {
+            console.error("Error deleting document:", error)
+            Alert.alert("Error", "Failed to delete document")
+          } finally {
+            setLoading(false)
+          }
+        },
+      },
+    ])
+  }
+
   // Get icon based on file type
   const getFileIcon = (fileType) => {
     if (fileType.includes("pdf")) {
@@ -120,7 +199,7 @@ export default function Documents() {
 
   // Get gradient colors based on category
   const getCategoryGradient = (category) => {
-    switch (category.toLowerCase()) {
+    switch (category?.toLowerCase()) {
       case "medical":
         return ["#4a00e0", "#8e2de2"]
       case "research":
@@ -133,25 +212,6 @@ export default function Documents() {
         return ["#6a11cb", "#2575fc"]
     }
   }
-
-  // Render document item
-  const renderDocumentItem = ({ item }) => (
-    <TouchableOpacity style={[styles.documentCard, { backgroundColor: "#121212" }]}>
-      <LinearGradient colors={getCategoryGradient(item.category)} style={styles.documentIconContainer}>
-        {getFileIcon(item.file_type)}
-      </LinearGradient>
-      <View style={styles.documentContent}>
-        <Text style={[styles.documentTitle, { color: "#FFFFFF" }]}>{item.title}</Text>
-        <Text style={[styles.documentInfo, { color: "#AAAAAA" }]}>
-          {item.file_type.split("/")[1].toUpperCase()} • {formatFileSize(item.file_size)} •{" "}
-          {formatDate(item.created_at)}
-        </Text>
-      </View>
-      <TouchableOpacity style={styles.documentActionButton}>
-        <MaterialIcons name="more-vert" size={24} color="#FFFFFF" />
-      </TouchableOpacity>
-    </TouchableOpacity>
-  )
 
   // Format file size
   const formatFileSize = (bytes) => {
@@ -167,6 +227,34 @@ export default function Documents() {
     const date = new Date(dateString)
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
   }
+
+  // Render document item
+  const renderDocumentItem = ({ item }) => (
+    <TouchableOpacity
+      style={[styles.documentCard, { backgroundColor: "#121212" }]}
+      onPress={() => handleViewDocument(item)}
+    >
+      <LinearGradient colors={getCategoryGradient(item.category)} style={styles.documentIconContainer}>
+        {getFileIcon(item.file_type)}
+      </LinearGradient>
+      <View style={styles.documentContent}>
+        <Text style={[styles.documentTitle, { color: "#FFFFFF" }]}>{item.title}</Text>
+        <Text style={[styles.documentInfo, { color: "#AAAAAA" }]}>
+          {item.file_type?.split("/")[1]?.toUpperCase() || "FILE"} • {formatFileSize(item.file_size)} •{" "}
+          {formatDate(item.created_at)}
+        </Text>
+      </View>
+      <TouchableOpacity
+        style={styles.documentActionButton}
+        onPress={() => {
+          setSelectedDocument(item)
+          setMenuVisible(true)
+        }}
+      >
+        <MaterialIcons name="more-vert" size={24} color="#FFFFFF" />
+      </TouchableOpacity>
+    </TouchableOpacity>
+  )
 
   // Render empty state
   const renderEmptyState = () => (
@@ -235,7 +323,7 @@ export default function Documents() {
       <FlatList
         data={documents}
         renderItem={renderDocumentItem}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.id?.toString()}
         ListHeaderComponent={renderCategories}
         ListEmptyComponent={!loading && renderEmptyState}
         ListFooterComponent={loading && !refreshing ? renderSkeletons : null}
@@ -256,6 +344,28 @@ export default function Documents() {
           <Ionicons name="cloud-upload" size={24} color="#FFFFFF" />
         </LinearGradient>
       </TouchableOpacity>
+
+      {/* Document Action Menu Modal */}
+      <Modal visible={menuVisible} transparent={true} animationType="fade" onRequestClose={() => setMenuVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setMenuVisible(false)}>
+          <View style={styles.menuContainer}>
+            <TouchableOpacity style={styles.menuItem} onPress={handleViewDocument}>
+              <Ionicons name="eye-outline" size={22} color="#FFFFFF" />
+              <Text style={styles.menuItemText}>View Document</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.menuItem} onPress={handleCreateConsent}>
+              <Ionicons name="shield-checkmark-outline" size={22} color="#FFFFFF" />
+              <Text style={styles.menuItemText}>Create Consent</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.menuItem, styles.deleteMenuItem]} onPress={handleDeleteDocument}>
+              <Ionicons name="trash-outline" size={22} color="#FF5555" />
+              <Text style={[styles.menuItemText, styles.deleteMenuItemText]}>Delete Document</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </LinearGradient>
   )
 }
@@ -392,6 +502,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Poppins-Medium",
     color: "#FFFFFF",
+  },
+  // Menu Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  menuContainer: {
+    width: width * 0.8,
+    backgroundColor: "#1E1E1E",
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#333333",
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333333",
+  },
+  menuItemText: {
+    fontSize: 16,
+    fontFamily: "Poppins-Medium",
+    color: "#FFFFFF",
+    marginLeft: 12,
+  },
+  deleteMenuItem: {
+    borderBottomWidth: 0,
+  },
+  deleteMenuItemText: {
+    color: "#FF5555",
   },
 })
 
