@@ -1,44 +1,45 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Image, FlatList, Alert } from "react-native"
-import { useRouter, useNavigation } from "expo-router"
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, FlatList, Alert } from "react-native"
+import { useRouter } from "expo-router"
 import { SafeAreaView } from "react-native-safe-area-context"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { StatusBar } from "expo-status-bar"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
+import LottieView from "lottie-react-native"
 
 const { width, height } = Dimensions.get("window")
 
-// Update the slides array to include gradient properties for each slide
+// Update the slides array with more informative content
 const slides = [
   {
     id: "1",
-    title: "Welcome to Consent Manager",
-    description: "Manage all your consents in one place with our secure and easy-to-use platform.",
-    image: require("../../assets/images/icon.png"),
+    title: "Secure Document Management",
+    description: "Our blockchain-based document storage ensures your sensitive information is encrypted and tamper-proof. Access your medical records, consent forms, and legal documents anytime with military-grade security protocols.",
+    animation: require("../../assets/animations/documents.json"),
     gradient: ["#4a00e0", "#8e2de2"],
   },
   {
     id: "2",
-    title: "Track Your Consents",
-    description: "Keep track of all your consents and permissions in an organized dashboard.",
-    image: require("../../assets/images/icon.png"),
+    title: "Comprehensive Consent Control",
+    description: "Take full control of who accesses your data with our granular permission system. Set time-limited access, revoke permissions instantly, and receive notifications when your data is accessed. Track every consent with detailed audit trails.",
+    animation: require("../../assets/animations/manage.json"),
     gradient: ["#00b09b", "#96c93d"],
   },
   {
     id: "3",
-    title: "Secure Documents",
-    description: "Store and access your important documents securely whenever you need them.",
-    image: require("../../assets/images/icon.png"),
+    title: "Instant Secure Sharing",
+    description: "Share specific consents or documents instantly via encrypted QR codes. Recipients can only access what you've explicitly shared, with optional time-limited access. Perfect for doctor visits, research participation, or legal consultations.",
+    animation: require("../../assets/animations/qr-scan.json"),
     gradient: ["#ff9966", "#ff5e62"],
   },
   {
     id: "4",
-    title: "Easy Management",
-    description: "Create, review, and manage consents with just a few taps.",
-    image: require("../../assets/images/icon.png"),
+    title: "Legally-Binding Digital Signatures",
+    description: "Sign documents with our blockchain-verified digital signatures that are legally binding in over 150 countries. Each signature is timestamped, encrypted, and includes biometric verification for maximum security and compliance.",
+    animation: require("../../assets/animations/signature.json"),
     gradient: ["#6a11cb", "#2575fc"],
   },
 ]
@@ -46,8 +47,13 @@ const slides = [
 export default function Onboarding() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const flatListRef = useRef<FlatList>(null)
+  const lottieRefs = useRef<(LottieView | null)[]>([])
   const router = useRouter()
-  const navigation = useNavigation()
+
+  // Initialize the lottie refs array
+  if (lottieRefs.current.length !== slides.length) {
+    lottieRefs.current = Array(slides.length).fill(null)
+  }
 
   const handleNext = () => {
     if (currentIndex < slides.length - 1) {
@@ -73,12 +79,20 @@ export default function Onboarding() {
     }
   }
 
-  const renderItem = ({ item }: { item: (typeof slides)[0] }) => {
+  const renderItem = ({ item, index }: { item: (typeof slides)[0]; index: number }) => {
     return (
       <View style={styles.slide}>
-        <LinearGradient colors={item.gradient} style={styles.imageContainer}>
-          <Image source={item.image} style={styles.image} />
-        </LinearGradient>
+        {/* Removed gradient background, using a regular View instead */}
+        <View style={styles.animationContainer}>
+          <LottieView
+            ref={(ref) => (lottieRefs.current[index] = ref)}
+            source={item.animation}
+            style={styles.animation}
+            autoPlay
+            loop
+            resizeMode="contain"
+          />
+        </View>
         <Text style={styles.title}>{item.title}</Text>
         <Text style={styles.description}>{item.description}</Text>
       </View>
@@ -89,6 +103,12 @@ export default function Onboarding() {
     const scrollPosition = event.nativeEvent.contentOffset.x
     const index = Math.round(scrollPosition / width)
     setCurrentIndex(index)
+    
+    // Restart the animation when a new slide is shown
+    if (lottieRefs.current[index]) {
+      lottieRefs.current[index]?.reset()
+      lottieRefs.current[index]?.play()
+    }
   }
 
   return (
@@ -110,6 +130,7 @@ export default function Onboarding() {
           showsHorizontalScrollIndicator={false}
           onScroll={handleScroll}
           keyExtractor={(item) => item.id}
+          onMomentumScrollEnd={handleScroll}
         />
 
         <View style={styles.indicatorContainer}>
@@ -166,7 +187,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 20,
   },
-  imageContainer: {
+  animationContainer: {
     width: width * 0.8,
     height: height * 0.4,
     justifyContent: "center",
@@ -174,11 +195,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 40,
     padding: 20,
+    backgroundColor: "#1A1A1A", // Subtle dark background instead of gradient
+    overflow: "hidden",
   },
-  image: {
-    width: "80%",
-    height: "80%",
-    resizeMode: "contain",
+  animation: {
+    width: "100%",
+    height: "100%",
   },
   title: {
     fontSize: 28,
@@ -193,6 +215,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 20,
     color: "#AAAAAA",
+    lineHeight: 24,
   },
   indicatorContainer: {
     flexDirection: "row",
@@ -230,4 +253,3 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 })
-
