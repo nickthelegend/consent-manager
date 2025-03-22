@@ -123,6 +123,12 @@ function CustomTabBar({ state, descriptors, navigation }) {
               const isFocused = state.index === index
               const tab = tabs.find((t) => t.route === route.name)
 
+              // Add this safety check to prevent the error
+              if (!tab) {
+                console.warn(`No tab configuration found for route: ${route.name}`)
+                return null
+              }
+
               // Animation values
               const scale = useRef(new Animated.Value(isFocused ? 1 : 0.9)).current
               const opacity = useRef(new Animated.Value(isFocused ? 1 : 0.6)).current
@@ -157,31 +163,31 @@ function CustomTabBar({ state, descriptors, navigation }) {
               }
 
               // Animation values
-              const [buttonScale] = useState(new Animated.Value(isFocused ? 1 : 0.9))
-              const [buttonOpacity] = useState(new Animated.Value(isFocused ? 1 : 0.6))
-              const [buttonTranslateY] = useState(new Animated.Value(isFocused ? -10 : 0))
+              // const [buttonScale] = useState(new Animated.Value(isFocused ? 1 : 0.9))
+              // const [buttonOpacity] = useState(new Animated.Value(isFocused ? 1 : 0.6))
+              // const [buttonTranslateY] = useState(new Animated.Value(isFocused ? -10 : 0))
 
-              useEffect(() => {
-                Animated.parallel([
-                  Animated.spring(buttonScale, {
-                    toValue: isFocused ? 1 : 0.9,
-                    useNativeDriver: true,
-                    tension: 80,
-                    friction: 5,
-                  }),
-                  Animated.timing(buttonOpacity, {
-                    toValue: isFocused ? 1 : 0.6,
-                    useNativeDriver: true,
-                    duration: 200,
-                  }),
-                  Animated.spring(buttonTranslateY, {
-                    toValue: isFocused ? -10 : 0,
-                    useNativeDriver: true,
-                    tension: 80,
-                    friction: 5,
-                  }),
-                ]).start()
-              }, [isFocused, buttonScale, buttonOpacity, buttonTranslateY])
+              // useEffect(() => {
+              //   Animated.parallel([
+              //     Animated.spring(buttonScale, {
+              //       toValue: isFocused ? 1 : 0.9,
+              //       useNativeDriver: true,
+              //       tension: 80,
+              //       friction: 5,
+              //     }),
+              //     Animated.timing(buttonOpacity, {
+              //       toValue: isFocused ? 1 : 0.6,
+              //       useNativeDriver: true,
+              //       duration: 200,
+              //     }),
+              //     Animated.spring(buttonTranslateY, {
+              //       toValue: isFocused ? -10 : 0,
+              //       useNativeDriver: true,
+              //       tension: 80,
+              //       friction: 5,
+              //     }),
+              //   ]).start()
+              // }, [isFocused, buttonScale, buttonOpacity, buttonTranslateY])
 
               return (
                 <Pressable
@@ -197,8 +203,8 @@ function CustomTabBar({ state, descriptors, navigation }) {
                       styles.tabIconContainer,
                       isFocused && styles.activeTabIconContainer,
                       {
-                        transform: [{ translateY: buttonTranslateY }, { scale: buttonScale }],
-                        opacity: buttonOpacity,
+                        transform: [{ translateY: translateY }, { scale: scale }],
+                        opacity: opacity,
                       },
                     ]}
                   >
