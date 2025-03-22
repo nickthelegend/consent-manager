@@ -1,20 +1,20 @@
 "use client"
-
-import { Drawer } from "expo-router/drawer"
 import { StatusBar } from "expo-status-bar"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { useFonts } from "expo-font"
-import { Text, ActivityIndicator, View, StyleSheet, Image, Animated, Pressable } from "react-native"
-import { Ionicons, FontAwesome5, MaterialCommunityIcons } from "@expo/vector-icons"
+import { ActivityIndicator, View, StyleSheet, Text } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
-import { DrawerContentScrollView, DrawerItemList } from "@react-navigation/drawer"
 import { LinearGradient } from "expo-linear-gradient"
-import { useEffect, useRef, useState } from "react"
+import { Drawer } from "expo-router/drawer"
+import { Ionicons, FontAwesome5, MaterialCommunityIcons } from "@expo/vector-icons"
+import { DrawerContentScrollView } from "@react-navigation/drawer"
+import { useState, useRef, useEffect } from "react"
+import { Animated, Pressable } from "react-native"
 
 // Custom drawer item component with animation
 function CustomDrawerItem({ label, icon, isActive, onPress }) {
   const scaleAnim = useRef(new Animated.Value(1)).current
-  
+
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
       toValue: 0.95,
@@ -23,7 +23,7 @@ function CustomDrawerItem({ label, icon, isActive, onPress }) {
       useNativeDriver: true,
     }).start()
   }
-  
+
   const handlePressOut = () => {
     Animated.spring(scaleAnim, {
       toValue: 1,
@@ -32,35 +32,21 @@ function CustomDrawerItem({ label, icon, isActive, onPress }) {
       useNativeDriver: true,
     }).start()
   }
-  
+
   return (
-    <Pressable
-      onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-    >
-      <Animated.View 
-        style={[
-          styles.customDrawerItem,
-          isActive && styles.activeDrawerItem,
-          { transform: [{ scale: scaleAnim }] }
-        ]}
+    <Pressable onPress={onPress} onPressIn={handlePressIn} onPressOut={handlePressOut}>
+      <Animated.View
+        style={[styles.customDrawerItem, isActive && styles.activeDrawerItem, { transform: [{ scale: scaleAnim }] }]}
       >
         <LinearGradient
-          colors={isActive ? ['#2A2A2A', '#333333'] : ['transparent', 'transparent']}
+          colors={isActive ? ["#2A2A2A", "#333333"] : ["transparent", "transparent"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={[styles.itemGradient, isActive && styles.activeItemGradient]}
         >
-          <View style={styles.iconContainer}>
-            {icon}
-          </View>
-          <Text style={[styles.drawerItemLabel, isActive && styles.activeDrawerItemLabel]}>
-            {label}
-          </Text>
-          {isActive && (
-            <View style={styles.activeIndicator} />
-          )}
+          <View style={styles.iconContainer}>{icon}</View>
+          <Text style={[styles.drawerItemLabel, isActive && styles.activeDrawerItemLabel]}>{label}</Text>
+          {isActive && <View style={styles.activeIndicator} />}
         </LinearGradient>
       </Animated.View>
     </Pressable>
@@ -69,8 +55,8 @@ function CustomDrawerItem({ label, icon, isActive, onPress }) {
 
 // Custom drawer content
 function CustomDrawerContent(props) {
-  const [activeRoute, setActiveRoute] = useState('(tabs)')
-  
+  const [activeRoute, setActiveRoute] = useState("(tabs)")
+
   // Extract the current route name
   useEffect(() => {
     if (props.state && props.state.routes) {
@@ -80,44 +66,41 @@ function CustomDrawerContent(props) {
   }, [props.state])
 
   const drawerItems = [
-    { 
-      name: '(tabs)', 
-      label: 'Dashboard', 
-      icon: (color) => <FontAwesome5 name="th-large" size={18} color={color} /> 
+    {
+      name: "(tabs)",
+      label: "Dashboard",
+      icon: (color) => <FontAwesome5 name="th-large" size={18} color={color} />,
     },
-    { 
-      name: '(sidebar)/dao-proposal', 
-      label: 'DAO Proposal', 
-      icon: (color) => <FontAwesome5 name="vote-yea" size={18} color={color} /> 
+    {
+      name: "(sidebar)/dao-proposal",
+      label: "DAO Proposal",
+      icon: (color) => <FontAwesome5 name="vote-yea" size={18} color={color} />,
     },
-    { 
-      name: '(sidebar)/settings', 
-      label: 'Settings', 
-      icon: (color) => <Ionicons name="settings-outline" size={20} color={color} /> 
+    {
+      name: "(sidebar)/settings",
+      label: "Settings",
+      icon: (color) => <Ionicons name="settings-outline" size={20} color={color} />,
     },
-    { 
-      name: '(sidebar)/wallet-settings', 
-      label: 'Wallet Settings', 
-      icon: (color) => <Ionicons name="wallet-outline" size={20} color={color} /> 
+    {
+      name: "(sidebar)/wallet-settings",
+      label: "Wallet Settings",
+      icon: (color) => <Ionicons name="wallet-outline" size={20} color={color} />,
     },
-    { 
-      name: '(sidebar)/contact', 
-      label: 'Contact', 
-      icon: (color) => <Ionicons name="mail-outline" size={20} color={color} /> 
+    {
+      name: "(sidebar)/contact",
+      label: "Contact",
+      icon: (color) => <Ionicons name="mail-outline" size={20} color={color} />,
     },
-    { 
-      name: '(sidebar)/support', 
-      label: 'Support', 
-      icon: (color) => <Ionicons name="help-circle-outline" size={20} color={color} /> 
+    {
+      name: "(sidebar)/support",
+      label: "Support",
+      icon: (color) => <Ionicons name="help-circle-outline" size={20} color={color} />,
     },
   ]
 
   return (
     <View style={styles.drawerContainer}>
-      <LinearGradient
-        colors={["#121212", "#000000"]}
-        style={styles.drawerGradient}
-      >
+      <LinearGradient colors={["#121212", "#000000"]} style={styles.drawerGradient}>
         <View style={styles.drawerHeader}>
           <View style={styles.logoContainer}>
             <LinearGradient
@@ -132,9 +115,9 @@ function CustomDrawerContent(props) {
           <Text style={styles.drawerTitle}>Consent Manager</Text>
           <Text style={styles.drawerSubtitle}>Secure • Private • Trusted</Text>
         </View>
-        
+
         <View style={styles.divider} />
-        
+
         <DrawerContentScrollView
           {...props}
           style={styles.drawerScrollView}
@@ -146,7 +129,7 @@ function CustomDrawerContent(props) {
               <CustomDrawerItem
                 key={item.name}
                 label={item.label}
-                icon={item.icon(activeRoute === item.name ? '#FFFFFF' : '#AAAAAA')}
+                icon={item.icon(activeRoute === item.name ? "#FFFFFF" : "#AAAAAA")}
                 isActive={activeRoute === item.name}
                 onPress={() => {
                   props.navigation.navigate(item.name)
@@ -155,12 +138,9 @@ function CustomDrawerContent(props) {
             ))}
           </View>
         </DrawerContentScrollView>
-        
+
         <View style={styles.drawerFooter}>
-          <LinearGradient
-            colors={["rgba(18, 18, 18, 0.8)", "rgba(0, 0, 0, 0.9)"]}
-            style={styles.footerGradient}
-          >
+          <LinearGradient colors={["rgba(18, 18, 18, 0.8)", "rgba(0, 0, 0, 0.9)"]} style={styles.footerGradient}>
             <Pressable style={styles.logoutButton}>
               <Ionicons name="log-out-outline" size={20} color="#FF5555" />
               <Text style={styles.logoutText}>Disconnect</Text>
@@ -208,64 +188,20 @@ export default function RootLayout() {
             drawerType: "front",
             overlayColor: "rgba(0, 0, 0, 0.7)",
             sceneContainerStyle: {
-              backgroundColor: "#000000"
-            }
+              backgroundColor: "#000000",
+            },
           }}
         >
-          <Drawer.Screen
-            name="(tabs)"
-            options={{
-              drawerItemStyle: { display: "none" },
-            }}
-          />
-          <Drawer.Screen
-            name="(sidebar)/dao-proposal"
-            options={{
-              drawerItemStyle: { display: "none" },
-            }}
-          />
-          <Drawer.Screen
-            name="(sidebar)/settings"
-            options={{
-              drawerItemStyle: { display: "none" },
-            }}
-          />
-          <Drawer.Screen
-            name="(sidebar)/wallet-settings"
-            options={{
-              drawerItemStyle: { display: "none" },
-            }}
-          />
-          <Drawer.Screen
-            name="(sidebar)/contact"
-            options={{
-              drawerItemStyle: { display: "none" },
-            }}
-          />
-          <Drawer.Screen
-            name="(sidebar)/support"
-            options={{
-              drawerItemStyle: { display: "none" },
-            }}
-          />
-          <Drawer.Screen
-            name="(onboarding)"
-            options={{
-              drawerItemStyle: { display: "none" },
-            }}
-          />
-          <Drawer.Screen
-            name="index"
-            options={{
-              drawerItemStyle: { display: "none" },
-            }}
-          />
-          <Drawer.Screen
-            name="+not-found"
-            options={{
-              drawerItemStyle: { display: "none" },
-            }}
-          />
+          <Drawer.Screen name="index" options={{ headerShown: false }} />
+          <Drawer.Screen name="(onboarding)" options={{ headerShown: false, swipeEnabled: false }} />
+          <Drawer.Screen name="(auth)" options={{ headerShown: false, swipeEnabled: false }} />
+          <Drawer.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Drawer.Screen name="(sidebar)/dao-proposal" />
+          <Drawer.Screen name="(sidebar)/settings" />
+          <Drawer.Screen name="(sidebar)/wallet-settings" />
+          <Drawer.Screen name="(sidebar)/contact" />
+          <Drawer.Screen name="(sidebar)/support" />
+          <Drawer.Screen name="+not-found" options={{ headerShown: false }} />
         </Drawer>
       </GestureHandlerRootView>
     </SafeAreaProvider>
@@ -273,6 +209,18 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    color: "#FFFFFF",
+    marginTop: 20,
+    fontSize: 18,
+    fontFamily: "Poppins-Medium",
+  },
+  // Drawer styles
   drawerContainer: {
     flex: 1,
     backgroundColor: "#000000",
@@ -292,7 +240,7 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: "center",
     marginBottom: 10,
-    marginTop:20
+    marginTop: 20,
   },
   logoContainer: {
     marginBottom: 16,
@@ -377,7 +325,7 @@ const styles = StyleSheet.create({
   },
   drawerFooter: {
     padding: 16,
-    marginTop: 'auto',
+    marginTop: "auto",
   },
   footerGradient: {
     borderTopWidth: 1,
@@ -406,15 +354,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 16,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    color: "#FFFFFF",
-    marginTop: 20,
-    fontSize: 18,
-    fontFamily: "Poppins-Medium",
-  },
 })
+
