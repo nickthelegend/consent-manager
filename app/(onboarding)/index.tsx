@@ -11,30 +11,35 @@ import { LinearGradient } from "expo-linear-gradient"
 
 const { width, height } = Dimensions.get("window")
 
+// Update the slides array to include gradient properties for each slide
 const slides = [
   {
     id: "1",
     title: "Welcome to Consent Manager",
     description: "Manage all your consents in one place with our secure and easy-to-use platform.",
     image: require("../../assets/images/icon.png"),
+    gradient: ["#4a00e0", "#8e2de2"],
   },
   {
     id: "2",
     title: "Track Your Consents",
     description: "Keep track of all your consents and permissions in an organized dashboard.",
     image: require("../../assets/images/icon.png"),
+    gradient: ["#00b09b", "#96c93d"],
   },
   {
     id: "3",
     title: "Secure Documents",
     description: "Store and access your important documents securely whenever you need them.",
     image: require("../../assets/images/icon.png"),
+    gradient: ["#ff9966", "#ff5e62"],
   },
   {
     id: "4",
     title: "Easy Management",
     description: "Create, review, and manage consents with just a few taps.",
     image: require("../../assets/images/icon.png"),
+    gradient: ["#6a11cb", "#2575fc"],
   },
 ]
 
@@ -60,22 +65,8 @@ export default function Onboarding() {
       // First set the AsyncStorage value
       await AsyncStorage.setItem("onboardingComplete", "true")
 
-      // Try direct navigation to the tabs
-      router.replace("/(tabs)/")
-
-      // If that doesn't work, try this alternative approach
-      setTimeout(() => {
-        // @ts-ignore - This is a workaround for navigation
-        if (navigation && navigation.navigate) {
-          // @ts-ignore
-          navigation.navigate("(tabs)")
-        }
-      }, 100)
-
-      // As a last resort, reload the app
-      setTimeout(() => {
-        router.replace("/")
-      }, 500)
+      // Use the correct path format for Expo Router
+      router.replace("/(auth)/create-wallet")
     } catch (error) {
       console.error("Error completing onboarding:", error)
       Alert.alert("Error", "There was a problem completing onboarding. Please try again.", [{ text: "OK" }])
