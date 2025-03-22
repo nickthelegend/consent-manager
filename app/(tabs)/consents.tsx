@@ -14,6 +14,7 @@ import {
 } from "react-native"
 import { MaterialIcons, Ionicons, FontAwesome5 } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
+import { router } from "expo-router"
 import { createClient } from "@supabase/supabase-js"
 import { getStoredSession, getWalletAddress } from "../../utils/secure-storage"
 
@@ -23,7 +24,6 @@ const supabaseKey =
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmJkcGxxdHhtY2RoYm5rYm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2MjE0MTIsImV4cCI6MjA1ODE5NzQxMn0.h01gicHiW7yTjqT2JWCSYRmLAIzBMOlPg-kIy6q8Kk0"
 const supabase = createClient(supabaseUrl, supabaseKey)
-
 
 // Skeleton component for loading state
 const ConsentSkeleton = () => (
@@ -209,8 +209,10 @@ export default function Consents() {
   // Handle view consent details
   const handleViewDetails = (consent) => {
     setMenuVisible(false)
-    // Navigate to consent details page
-    Alert.alert("View Details", "Consent details view will be implemented here.")
+    router.push({
+      pathname: "/(consents)/view-details",
+      params: { consentId: consent.id },
+    })
   }
 
   // Handle revoke consent
@@ -271,15 +273,14 @@ export default function Consents() {
     )
   }
 
+  // Handle create text consent
+  const handleCreateTextConsent = () => {
+    router.push("/(consents)/create-text-consent")
+  }
+
   // Render consent item
   const renderConsentItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.consentCard}
-      onPress={() => {
-        setSelectedConsent(item)
-        setMenuVisible(true)
-      }}
-    >
+    <TouchableOpacity style={styles.consentCard} onPress={() => handleViewDetails(item)}>
       <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.consentCardGradient}>
         <View style={styles.consentHeader}>
           <Text style={styles.consentTitle}>{item.title}</Text>
@@ -291,8 +292,17 @@ export default function Consents() {
         </View>
 
         <View style={styles.documentInfo}>
-          {getDocumentIcon(item.user_uploads?.file_type)}
-          <Text style={styles.documentTitle}>{item.user_uploads?.title || "Document"}</Text>
+          {item.document_id ? (
+            <>
+              {getDocumentIcon(item.user_uploads?.file_type)}
+              <Text style={styles.documentTitle}>{item.user_uploads?.title || "Document"}</Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="text" size={20} color="#FFFFFF" />
+              <Text style={styles.documentTitle}>Text Consent</Text>
+            </>
+          )}
         </View>
 
         <Text style={styles.organizationText}>{item.organization}</Text>
@@ -328,6 +338,12 @@ export default function Consents() {
         <Text style={styles.emptyStateDescription}>
           You haven't created any consents yet. Create a consent by selecting a document and tapping "Create Consent".
         </Text>
+        <TouchableOpacity style={styles.emptyStateButton} onPress={handleCreateTextConsent}>
+          <LinearGradient colors={["#6a11cb", "#2575fc"]} style={styles.emptyStateButtonGradient}>
+            <Text style={styles.emptyStateButtonText}>Create Text Consent</Text>
+            <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" style={{ marginLeft: 8 }} />
+          </LinearGradient>
+        </TouchableOpacity>
       </LinearGradient>
     </View>
   )
@@ -447,6 +463,12 @@ export default function Consents() {
           }
         />
       )}
+
+      <TouchableOpacity style={styles.createButton} onPress={handleCreateTextConsent}>
+        <LinearGradient colors={["#6a11cb", "#2575fc"]} style={styles.createButtonGradient}>
+          <Ionicons name="add" size={24} color="#FFFFFF" />
+        </LinearGradient>
+      </TouchableOpacity>
 
       {/* Consent Action Menu Modal */}
       <Modal visible={menuVisible} transparent={true} animationType="fade" onRequestClose={() => setMenuVisible(false)}>
@@ -613,6 +635,41 @@ const styles = StyleSheet.create({
     color: "#AAAAAA",
     textAlign: "center",
     marginBottom: 20,
+  },
+  emptyStateButton: {
+    borderRadius: 8,
+    overflow: "hidden",
+    marginTop: 10,
+  },
+  emptyStateButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+  },
+  emptyStateButtonText: {
+    fontSize: 16,
+    fontFamily: "Poppins-Medium",
+    color: "#FFFFFF",
+  },
+  // Create Button
+  createButton: {
+    position: "absolute",
+    bottom: 80,
+    right: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  createButtonGradient: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
   },
   // Menu Modal Styles
   modalOverlay: {

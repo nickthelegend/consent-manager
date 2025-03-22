@@ -140,8 +140,12 @@ export default function Documents() {
   // Handle view document
   const handleViewDocument = () => {
     setMenuVisible(false)
-    // Implement view document functionality
-    Alert.alert("View Document", "Document viewing functionality will be implemented here.")
+    if (selectedDocument) {
+      router.push({
+        pathname: "/(documents)/view-document",
+        params: { documentId: selectedDocument.id },
+      })
+    }
   }
 
   // Handle delete document
