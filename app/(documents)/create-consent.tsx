@@ -11,6 +11,7 @@ import {
   Alert,
   ActivityIndicator,
   Switch,
+  Platform,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { LinearGradient } from "expo-linear-gradient"
@@ -20,13 +21,29 @@ import { createClient } from "@supabase/supabase-js"
 import { getStoredSession, getWalletAddress } from "../../utils/secure-storage"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import { Picker } from "@react-native-picker/picker"
-
+import algosdk from "algosdk"
 // Initialize Supabase client
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://uorbdplqtxmcdhbnkbmf.supabase.co"
 const supabaseKey =
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmJkcGxxdHhtY2RoYm5rYm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2MjE0MTIsImV4cCI6MjA1ODE5NzQxMn0.h01gicHiW7yTjqT2JWCSYRmLAIzBMOlPg-kIy6q8Kk0"
 const supabase = createClient(supabaseUrl, supabaseKey)
+import * as SecureStore from "expo-secure-store"
+
+const METHODS = [
+  new algosdk.ABIMethod({ name: "createConsent", desc: "", args: [
+    { type: "string", name: "title", desc: "" },
+     { type: "string", name: "description", desc: "" },
+      { type: "string", name: "organization", desc: "" },
+      { type: "uint64", name: "duration", desc: "" },
+       { type: "string", name: "consentHash", desc: "" },
+        { type: "string", name: "signedUrl", desc: "" },
+         { type: "string", name: "consetData", desc: "" }],
+          returns: { type: "void", desc: "" } }),
+  new algosdk.ABIMethod({ name: "createBox", desc: "", args: [], returns: { type: "void", desc: "" } }),
+
+];
+
 
 
 export default function CreateConsent() {
@@ -46,6 +63,7 @@ export default function CreateConsent() {
   const [expiryEnabled, setExpiryEnabled] = useState(true)
   const [expiryDate, setExpiryDate] = useState(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)) // Default 30 days
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showTimePicker, setShowTimePicker] = useState(false)
   const [accessType, setAccessType] = useState("view") // view, download, edit
 
   // Fetch document and user data
@@ -103,17 +121,46 @@ export default function CreateConsent() {
   const onDateChange = (event, selectedDate) => {
     setShowDatePicker(false)
     if (selectedDate) {
-      setExpiryDate(selectedDate)
+      // Keep the time from the current expiryDate
+      const newDate = new Date(selectedDate)
+      newDate.setHours(expiryDate.getHours())
+      newDate.setMinutes(expiryDate.getMinutes())
+      setExpiryDate(newDate)
+
+      // On iOS, we'll show the time picker right after date selection
+      if (Platform.OS === "ios") {
+        setShowTimePicker(true)
+      }
+    }
+  }
+
+  // Handle time change
+  const onTimeChange = (event, selectedTime) => {
+    setShowTimePicker(false)
+    if (selectedTime) {
+      // Keep the date from the current expiryDate
+      const newDate = new Date(expiryDate)
+      newDate.setHours(selectedTime.getHours())
+      newDate.setMinutes(selectedTime.getMinutes())
+      setExpiryDate(newDate)
     }
   }
 
   // Format date for display
   const formatDate = (date) => {
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
+    return (
+      date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }) +
+      " at " +
+      date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "numeric",
+        hour12: true,
+      })
+    )
   }
 
   // Validate form
@@ -166,51 +213,221 @@ export default function CreateConsent() {
         // The URL format is: https://[project-ref].supabase.co/storage/v1/object/public/documents/userId/fileName
         try {
           // Log the full URL for debugging
-          console.log("Full file URL:", document.file_url);
-        
+          console.log("Full file URL:", document.file_url)
+
           // Parse the URL to get just the path part after the bucket name
-          const url = new URL(document.file_url);
-          const pathParts = url.pathname.split("/");
-        
+          const url = new URL(document.file_url)
+          const pathParts = url.pathname.split("/")
+
           // Find the index of 'documents' in the path
-          const documentsIndex = pathParts.findIndex((part) => part === "documents");
-        
+          const documentsIndex = pathParts.findIndex((part) => part === "documents")
+
           if (documentsIndex === -1) {
-            throw new Error("Invalid file URL format: bucket name not found");
+            throw new Error("Invalid file URL format: bucket name not found")
           }
-        
+
           // Get all parts after 'documents' to form the correct path
-          const path = pathParts.slice(documentsIndex + 1).join("/");
-          console.log("Extracted storage path for signed URL:", path);
-        
-          // Check if the file exists before creating a signed URL
-          const { data: fileCheck, error: fileCheckError } = await supabase.storage.from("documents").list(pathParts[documentsIndex]);
-        
-          if (fileCheckError) {
-            console.error("Error checking file existence:", fileCheckError);
-            throw new Error(`Failed to check file existence: ${fileCheckError.message}`);
-          }
-        
-          // Log the files in the bucket for debugging
-          console.log("Files in the bucket:", fileCheck);
-        
-          // Create the signed URL
-          const { data, error } = await supabase.storage.from("documents").createSignedUrl(path, expirySeconds);
-        
+          const path = pathParts.slice(documentsIndex + 1).join("/")
+          console.log("Extracted storage path for signed URL:", path)
+
+          const { data, error } = await supabase.storage.from("documents").createSignedUrl(path, expirySeconds)
+
           if (error) {
-            console.error("Signed URL error:", error);
-            throw new Error(`Failed to create signed URL: ${error.message}`);
+            console.error("Signed URL error:", error)
+            throw new Error(`Failed to create signed URL: ${error.message}`)
           }
-        
-          signedUrl = data.signedUrl;
-          console.log("Successfully created signed URL:", signedUrl);
+
+          signedUrl = data.signedUrl
+          console.log("Successfully created signed URL")
         } catch (error) {
-          console.error("Error parsing file URL:", error);
-          throw new Error(`Failed to process file URL: ${error.message}`);
+          console.error("Error parsing file URL:", error)
+          throw new Error(`Failed to process file URL: ${error.message}`)
         }
       }
 
-      // Create consent record
+      // Create app using the external API
+      let appId = null
+      let appAddress = null
+
+      const walletAddress = await SecureStore.getItemAsync("walletAddress")
+      const mnemonic = await SecureStore.getItemAsync("walletMnemonic")
+      if (!mnemonic) throw new Error("No mnemonic found")
+
+      const account = algosdk.mnemonicToSecretKey(mnemonic)
+
+      if (!walletAddress || !mnemonic) {
+        throw new Error("Wallet not found")
+      }
+
+
+
+      try {
+        console.log("Creating app for wallet address:", walletAddress)
+
+        const response = await fetch("http://172.16.4.103:3000/createApp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            owner: walletAddress,
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`)
+        }
+
+        const appData = await response.json()
+        appId = appData.appId
+        appAddress = appData.appAddress
+
+        console.log("App created successfully:", appData)
+      } catch (error) {
+        console.error("Error creating app:", error)
+        throw new Error(`Failed to create app: ${error.message}`)
+      }
+
+
+
+     
+
+      try {
+        const algodClient = new algosdk.Algodv2("", "https://testnet-api.algonode.cloud", "");
+
+        const suggestedParams = await algodClient.getTransactionParams().do()
+
+
+        const txn1 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+          sender: account.addr,
+          receiver: appAddress,
+          amount: 1000000,
+          suggestedParams,
+      });
+      
+      const signedTxn = txn1.signTxn(account.sk)
+      
+        const { txid } = await algodClient.sendRawTransaction(signedTxn).do() 
+        await algosdk.waitForConfirmation(algodClient, txid, 4)
+  
+        const boxKey = algosdk.coerceToBytes('consentData');
+
+        const atc = new algosdk.AtomicTransactionComposer();
+
+
+        atc.addMethodCall({
+          appID: Number(appId),
+          method: METHODS[1], // your ABI method (buyNFT)
+          signer: algosdk.makeBasicAccountTransactionSigner(account),
+          methodArgs: [], 
+          sender: walletAddress,
+          suggestedParams: { ...suggestedParams, fee: Number(30) },
+        });
+
+
+        atc.addMethodCall({
+          appID: Number(appId),
+          method: METHODS[0], // your ABI method (buyNFT)
+          signer: algosdk.makeBasicAccountTransactionSigner(account),
+          methodArgs: ["Consent for sad","Sad","sad",1742714450,"hash","signed_url","data"], 
+          sender: walletAddress,
+          suggestedParams: { ...suggestedParams, fee: Number(30) },
+          boxes:[{
+            appIndex: Number(appId),
+            name: boxKey,
+          },]
+        });
+
+
+        const result = await atc.execute(algodClient, 4);
+        for (const mr of result.methodResults) {
+          console.log(`${mr.returnValue}`);
+        }
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//         const txn2 = algosdk.makeApplicationNoOpTxnFromObject({
+//           sender: account.addr,
+//           appIndex: Number(appId),
+//           appArgs: [
+              
+//           ],
+//           // foreignAssets: [questAssetID],
+//           suggestedParams: { ...suggestedParams, fee: Number(30) },
+//       });
+
+//       const selector = algosdk.getMethodByName(METHODS, 'createConsent').getSelector();
+
+// // Convert your string argument into a Uint8Array
+// const encoder = new TextEncoder();
+// const stringArg = "your string argument"; // Replace with your actual string
+// const encodedStringArg = encoder.encode(stringArg);
+// const consentDataBox = {
+//   appIndex: Number(appId),  // Ensure this is the correct app index for the box
+//   name: encoder.encode("consentData")
+// };
+//       const txn3 = algosdk.makeApplicationNoOpTxnFromObject({
+//         sender: account.addr,
+//         appIndex: Number(appId),
+//         appArgs: [
+//            selector,
+//            encoder.encode("For SAD"),
+//            encoder.encode("Iyoooo"),
+
+//            encoder.encode("Iyoooo"),
+//            algosdk.encodeUint64(1742799999),
+//            encoder.encode("Iyoooo"),
+//            encoder.encode("Iyoooo"),
+//            encoder.encode("Iyoooo"),
+
+
+//         ],
+//         boxes:[consentDataBox],
+//         suggestedParams: { ...suggestedParams, fee: Number(30) },
+//     });
+
+//     const txns = [txn2, txn3,];
+//     const txGroup = algosdk.assignGroupID(txns);
+//     const signedTxns = txns.map(txn => txn.signTxn(account.sk));
+//     const txId = txn1.txID(); // Use the first transaction's txID
+
+//     // Send the signed transactions atomically
+//     await algodClient.sendRawTransaction(signedTxns).do();
+
+//     await algosdk.waitForConfirmation(
+//       algodClient,
+//       txId.toString(),
+//       3
+//     );
+
+      } catch (error) {
+        console.error("Error Creating Consent:", error)
+      Alert.alert("Error", "Error Creating Consent")
+      throw new Error(`Failed Creating Consent: ${error.message}`)
+
+      }
+
+
+
+
+      // Create consent record with app ID
       const { data: consentData, error: consentError } = await supabase
         .from("user_consents")
         .insert([
@@ -225,6 +442,8 @@ export default function CreateConsent() {
             expires_at: expiryEnabled ? expiryDate.toISOString() : null,
             status: "active",
             signed_url: signedUrl,
+            app_id: appId,
+            app_address: appAddress,
           },
         ])
         .select()
@@ -366,12 +585,24 @@ export default function CreateConsent() {
               </View>
 
               {expiryEnabled && (
-                <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowDatePicker(true)}>
-                  <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.datePickerGradient}>
-                    <Ionicons name="calendar-outline" size={22} color="#AAAAAA" style={styles.dateIcon} />
-                    <Text style={styles.dateText}>{formatDate(expiryDate)}</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
+                <View>
+                  <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowDatePicker(true)}>
+                    <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.datePickerGradient}>
+                      <Ionicons name="calendar-outline" size={22} color="#AAAAAA" style={styles.dateIcon} />
+                      <Text style={styles.dateText}>{formatDate(expiryDate)}</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+
+                  <View style={styles.timeButtonsContainer}>
+                    <TouchableOpacity style={styles.timeButton} onPress={() => setShowDatePicker(true)}>
+                      <Text style={styles.timeButtonText}>Change Date</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.timeButton} onPress={() => setShowTimePicker(true)}>
+                      <Text style={styles.timeButtonText}>Change Time</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               )}
 
               {showDatePicker && (
@@ -384,11 +615,15 @@ export default function CreateConsent() {
                 />
               )}
 
+              {showTimePicker && (
+                <DateTimePicker value={expiryDate} mode="time" display="default" onChange={onTimeChange} />
+              )}
+
               <View style={styles.warningContainer}>
                 <Ionicons name="information-circle-outline" size={24} color="#6a11cb" />
                 <Text style={styles.warningText}>
                   {expiryEnabled
-                    ? "The consent will automatically expire on the selected date. After expiry, the document will no longer be accessible to the organization."
+                    ? "The consent will automatically expire on the selected date and time. After expiry, the document will no longer be accessible to the organization."
                     : "Without an expiry date, this consent will remain active until manually revoked."}
                 </Text>
               </View>
@@ -575,6 +810,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Poppins-Regular",
     color: "#FFFFFF",
+  },
+  timeButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  timeButton: {
+    flex: 1,
+    backgroundColor: "#1E1E1E",
+    borderRadius: 8,
+    padding: 10,
+    alignItems: "center",
+    marginHorizontal: 4,
+  },
+  timeButtonText: {
+    color: "#AAAAAA",
+    fontFamily: "Poppins-Medium",
+    fontSize: 14,
   },
   warningContainer: {
     flexDirection: "row",
