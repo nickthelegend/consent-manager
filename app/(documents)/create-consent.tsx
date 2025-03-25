@@ -22,11 +22,18 @@ import { getStoredSession, getWalletAddress } from "../../utils/secure-storage"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import { Picker } from "@react-native-picker/picker"
 import algosdk from "algosdk"
+
+
+
+
+
+
+
+
+
 // Initialize Supabase client
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://uorbdplqtxmcdhbnkbmf.supabase.co"
-const supabaseKey =
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmJkcGxxdHhtY2RoYm5rYm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2MjE0MTIsImV4cCI6MjA1ODE5NzQxMn0.h01gicHiW7yTjqT2JWCSYRmLAIzBMOlPg-kIy6q8Kk0"
+const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmJkcGxxdHhtY2RoYm5rYm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2MjE0MTIsImV4cCI6MjA1ODE5NzQxMn0.h01gicHiW7yTjqT2JWCSYRmLAIzBMOlPg-kIy6q8Kk0"
 const supabase = createClient(supabaseUrl, supabaseKey)
 import * as SecureStore from "expo-secure-store"
 
@@ -313,8 +320,43 @@ export default function CreateConsent() {
         const boxKey = algosdk.coerceToBytes('consentData');
 
         const atc = new algosdk.AtomicTransactionComposer();
+        const consentDataString = JSON.stringify({ signed_url: signedUrl })
 
+// Create consent data with signed URL
+const consentData = JSON.stringify({ signed_url: signedUrl })
 
+// For production, we need to encrypt the data with RSA
+let encryptedData
+try {
+  // Create consent data with signed URL
+  const consentData = JSON.stringify({ signed_url: signedUrl })
+
+  // Call the external encryption API
+  const encryptionResponse = await fetch("http://172.16.4.103:3000/api/encrypt", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      data: consentData,
+    }),
+  })
+
+  if (!encryptionResponse.ok) {
+    throw new Error(`Encryption API error: ${encryptionResponse.status}`)
+  }
+
+  const encryptionResult = await encryptionResponse.json()
+  encryptedData = encryptionResult.encryptedData || encryptionResult.result
+  console.log("Data encrypted successfully via API")
+} catch (error) {
+  console.error("Encryption API error:", error)
+  // Fallback to unencrypted data if encryption fails
+  encryptedData = consentData
+  Alert.alert("Warning", "Could not encrypt data securely. Proceeding with unencrypted data.")
+}
+
+      console.log(encryptedData)
         atc.addMethodCall({
           appID: Number(appId),
           method: METHODS[1], // your ABI method (buyNFT)
@@ -329,7 +371,7 @@ export default function CreateConsent() {
           appID: Number(appId),
           method: METHODS[0], // your ABI method (buyNFT)
           signer: algosdk.makeBasicAccountTransactionSigner(account),
-          methodArgs: ["Consent for sad","Sad","sad",1742714450,"hash","signed_url","data"], 
+          methodArgs: ["Consent for sad","Sad","sad",1742714450,"hash","signed_url",encryptedData], 
           sender: walletAddress,
           suggestedParams: { ...suggestedParams, fee: Number(30) },
           boxes:[{
