@@ -23,35 +23,31 @@ import DateTimePicker from "@react-native-community/datetimepicker"
 import { Picker } from "@react-native-picker/picker"
 import algosdk from "algosdk"
 
-
-
-
-
-
-
-
-
 // Initialize Supabase client
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://uorbdplqtxmcdhbnkbmf.supabase.co"
-const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmJkcGxxdHhtY2RoYm5rYm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2MjE0MTIsImV4cCI6MjA1ODE5NzQxMn0.h01gicHiW7yTjqT2JWCSYRmLAIzBMOlPg-kIy6q8Kk0"
+const supabaseKey =
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmJkcGxxdHhtY2RoYm5rYm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2MjE0MTIsImV4cCI6MjA1ODE5NzQxMn0.h01gicHiW7yTjqT2JWCSYRmLAIzBMOlPg-kIy6q8Kk0"
 const supabase = createClient(supabaseUrl, supabaseKey)
 import * as SecureStore from "expo-secure-store"
 
 const METHODS = [
-  new algosdk.ABIMethod({ name: "createConsent", desc: "", args: [
-    { type: "string", name: "title", desc: "" },
-     { type: "string", name: "description", desc: "" },
+  new algosdk.ABIMethod({
+    name: "createConsent",
+    desc: "",
+    args: [
+      { type: "string", name: "title", desc: "" },
+      { type: "string", name: "description", desc: "" },
       { type: "string", name: "organization", desc: "" },
       { type: "uint64", name: "duration", desc: "" },
-       { type: "string", name: "consentHash", desc: "" },
-        { type: "string", name: "signedUrl", desc: "" },
-         { type: "string", name: "consetData", desc: "" }],
-          returns: { type: "void", desc: "" } }),
+      { type: "string", name: "consentHash", desc: "" },
+      { type: "string", name: "signedUrl", desc: "" },
+      { type: "string", name: "consetData", desc: "" },
+    ],
+    returns: { type: "void", desc: "" },
+  }),
   new algosdk.ABIMethod({ name: "createBox", desc: "", args: [], returns: { type: "void", desc: "" } }),
-
-];
-
-
+]
 
 export default function CreateConsent() {
   const params = useLocalSearchParams()
@@ -256,22 +252,21 @@ export default function CreateConsent() {
       let appId = null
       let appAddress = null
 
-      const walletAddress = await SecureStore.getItemAsync("walletAddress")
+      // Get the wallet mnemonic and create account
       const mnemonic = await SecureStore.getItemAsync("walletMnemonic")
       if (!mnemonic) throw new Error("No mnemonic found")
 
       const account = algosdk.mnemonicToSecretKey(mnemonic)
+      const algodClient = new algosdk.Algodv2("", "https://testnet-api.algonode.cloud", "")
 
       if (!walletAddress || !mnemonic) {
         throw new Error("Wallet not found")
       }
 
-
-
       try {
         console.log("Creating app for wallet address:", walletAddress)
 
-        const response = await fetch("http://172.16.5.238:3000/createApp", {
+        const response = await fetch("http://172.16.4.103:3000/createApp", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -295,179 +290,99 @@ export default function CreateConsent() {
         throw new Error(`Failed to create app: ${error.message}`)
       }
 
-
-
-     
-
       try {
-        const algodClient = new algosdk.Algodv2("", "https://testnet-api.algonode.cloud", "");
-
         const suggestedParams = await algodClient.getTransactionParams().do()
-
 
         const txn1 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
           sender: account.addr,
           receiver: appAddress,
           amount: 1000000,
           suggestedParams,
-      });
-      
-      const signedTxn = txn1.signTxn(account.sk)
-      
-        const { txid } = await algodClient.sendRawTransaction(signedTxn).do() 
+        })
+
+        const signedTxn = txn1.signTxn(account.sk)
+
+        const { txid } = await algodClient.sendRawTransaction(signedTxn).do()
         await algosdk.waitForConfirmation(algodClient, txid, 4)
-  
-        const boxKey = algosdk.coerceToBytes('consentData');
 
-        const atc = new algosdk.AtomicTransactionComposer();
-        const consentDataString = JSON.stringify({ signed_url: signedUrl })
+        const boxKey = algosdk.coerceToBytes("consentData")
 
-// Create consent data with signed URL
-const consentData = JSON.stringify({ signed_url: signedUrl })
+        const atc = new algosdk.AtomicTransactionComposer()
 
-// For production, we need to encrypt the data with RSA
-let encryptedData
-try {
-  // Create consent data with signed URL
-  const consentData = JSON.stringify({ signed_url: signedUrl })
+        // Create consent data with signed URL
+        const consentData = JSON.stringify({ signed_url: signedUrl })
 
-  // Call the external encryption API
-  const encryptionResponse = await fetch("http://172.16.5.238:3000/api/encrypt", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      data: consentData,
-    }),
-  })
+        // For production, we need to encrypt the data with RSA
+        let encryptedData
+        try {
+          // Call the external encryption API
+          const encryptionResponse = await fetch("http://172.16.4.103:3000/api/encrypt", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              data: consentData,
+            }),
+          })
 
-  if (!encryptionResponse.ok) {
-    throw new Error(`Encryption API error: ${encryptionResponse.status}`)
-  }
+          if (!encryptionResponse.ok) {
+            throw new Error(`Encryption API error: ${encryptionResponse.status}`)
+          }
 
-  const encryptionResult = await encryptionResponse.json()
-  encryptedData = encryptionResult.encryptedData || encryptionResult.result
-  console.log("Data encrypted successfully via API")
-} catch (error) {
-  console.error("Encryption API error:", error)
-  // Fallback to unencrypted data if encryption fails
-  encryptedData = consentData
-  Alert.alert("Warning", "Could not encrypt data securely. Proceeding with unencrypted data.")
-}
-
-      console.log(encryptedData)
-        atc.addMethodCall({
-          appID: Number(appId),
-          method: METHODS[1], // your ABI method (buyNFT)
-          signer: algosdk.makeBasicAccountTransactionSigner(account),
-          methodArgs: [], 
-          sender: walletAddress,
-          suggestedParams: { ...suggestedParams, fee: Number(30) },
-        });
-
-
-        atc.addMethodCall({
-          appID: Number(appId),
-          method: METHODS[0], // your ABI method (buyNFT)
-          signer: algosdk.makeBasicAccountTransactionSigner(account),
-          methodArgs: ["Consent for sad","Sad","sad",1742714450,"hash","signed_url",encryptedData], 
-          sender: walletAddress,
-          suggestedParams: { ...suggestedParams, fee: Number(30) },
-          boxes:[{
-            appIndex: Number(appId),
-            name: boxKey,
-          },]
-        });
-
-
-        const result = await atc.execute(algodClient, 4);
-        for (const mr of result.methodResults) {
-          console.log(`${mr.returnValue}`);
+          const encryptionResult = await encryptionResponse.json()
+          encryptedData = encryptionResult.encryptedData || encryptionResult.result
+          console.log("Data encrypted successfully via API")
+        } catch (error) {
+          console.error("Encryption API error:", error)
+          // Fallback to unencrypted data if encryption fails
+          encryptedData = consentData
+          Alert.alert("Warning", "Could not encrypt data securely. Proceeding with unencrypted data.")
         }
-        
 
+        // Create box first
+        atc.addMethodCall({
+          appID: Number(appId),
+          method: METHODS[1], // createBox method
+          signer: algosdk.makeBasicAccountTransactionSigner(account),
+          methodArgs: [],
+          sender: walletAddress,
+          suggestedParams: { ...suggestedParams, fee: Number(30) },
+        })
 
+        // Then add the consent data
+        atc.addMethodCall({
+          appID: Number(appId),
+          method: METHODS[0], // createConsent method
+          signer: algosdk.makeBasicAccountTransactionSigner(account),
+          methodArgs: [
+            title,
+            description,
+            organization,
+            expiryEnabled ? Math.floor(expiryDate.getTime() / 1000) : 1742714450,
+            "hash",
+            signedUrl,
+            encryptedData,
+          ],
+          sender: walletAddress,
+          suggestedParams: { ...suggestedParams, fee: Number(30) },
+          boxes: [
+            {
+              appIndex: Number(appId),
+              name: boxKey,
+            },
+          ],
+        })
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//         const txn2 = algosdk.makeApplicationNoOpTxnFromObject({
-//           sender: account.addr,
-//           appIndex: Number(appId),
-//           appArgs: [
-              
-//           ],
-//           // foreignAssets: [questAssetID],
-//           suggestedParams: { ...suggestedParams, fee: Number(30) },
-//       });
-
-//       const selector = algosdk.getMethodByName(METHODS, 'createConsent').getSelector();
-
-// // Convert your string argument into a Uint8Array
-// const encoder = new TextEncoder();
-// const stringArg = "your string argument"; // Replace with your actual string
-// const encodedStringArg = encoder.encode(stringArg);
-// const consentDataBox = {
-//   appIndex: Number(appId),  // Ensure this is the correct app index for the box
-//   name: encoder.encode("consentData")
-// };
-//       const txn3 = algosdk.makeApplicationNoOpTxnFromObject({
-//         sender: account.addr,
-//         appIndex: Number(appId),
-//         appArgs: [
-//            selector,
-//            encoder.encode("For SAD"),
-//            encoder.encode("Iyoooo"),
-
-//            encoder.encode("Iyoooo"),
-//            algosdk.encodeUint64(1742799999),
-//            encoder.encode("Iyoooo"),
-//            encoder.encode("Iyoooo"),
-//            encoder.encode("Iyoooo"),
-
-
-//         ],
-//         boxes:[consentDataBox],
-//         suggestedParams: { ...suggestedParams, fee: Number(30) },
-//     });
-
-//     const txns = [txn2, txn3,];
-//     const txGroup = algosdk.assignGroupID(txns);
-//     const signedTxns = txns.map(txn => txn.signTxn(account.sk));
-//     const txId = txn1.txID(); // Use the first transaction's txID
-
-//     // Send the signed transactions atomically
-//     await algodClient.sendRawTransaction(signedTxns).do();
-
-//     await algosdk.waitForConfirmation(
-//       algodClient,
-//       txId.toString(),
-//       3
-//     );
-
+        const result = await atc.execute(algodClient, 4)
+        for (const mr of result.methodResults) {
+          console.log(`${mr.returnValue}`)
+        }
       } catch (error) {
         console.error("Error Creating Consent:", error)
-      Alert.alert("Error", "Error Creating Consent")
-      throw new Error(`Failed Creating Consent: ${error.message}`)
-
+        Alert.alert("Error", "Error Creating Consent")
+        throw new Error(`Failed Creating Consent: ${error.message}`)
       }
-
-
-
 
       // Create consent record with app ID
       const { data: consentData, error: consentError } = await supabase
@@ -904,4 +819,3 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 })
-
