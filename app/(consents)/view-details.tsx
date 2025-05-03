@@ -10,7 +10,7 @@ import { createClient } from "@supabase/supabase-js"
 import { getStoredSession } from "../../utils/secure-storage"
 // Update the import statement to use QRCodeStyled
 import QRCodeStyled from "react-native-qrcode-styled"
-
+import algosdk, { base64ToBytes } from "algosdk"
 // Initialize Supabase client
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://uorbdplqtxmcdhbnkbmf.supabase.co"
 const supabaseKey =
@@ -18,6 +18,7 @@ const supabaseKey =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmJkcGxxdHhtY2RoYm5rYm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2MjE0MTIsImV4cCI6MjA1ODE5NzQxMn0.h01gicHiW7yTjqT2JWCSYRmLAIzBMOlPg-kIy6q8Kk0"
 const supabase = createClient(supabaseUrl, supabaseKey)
 
+import * as SecureStore from "expo-secure-store"
 
 export default function ViewConsentDetails() {
   const params = useLocalSearchParams()
@@ -26,6 +27,36 @@ export default function ViewConsentDetails() {
   const [loading, setLoading] = useState(true)
   const [consent, setConsent] = useState(null)
   const [document, setDocument] = useState(null)
+
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [account, setAccount] = useState<algosdk.Account | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+
+   useEffect(() => {
+    const fetchWalletDetails = async () => {
+      try {
+        const mnemonic = await SecureStore.getItemAsync("walletMnemonic");
+        if (!mnemonic) throw new Error("No mnemonic found");
+
+        const derivedAccount = algosdk.mnemonicToSecretKey(mnemonic);
+
+        const storedWalletAddress = await SecureStore.getItemAsync("walletAddress");
+        if (!storedWalletAddress) throw new Error("Wallet not found");
+
+
+
+
+
+        setWalletAddress(storedWalletAddress);
+        setAccount(derivedAccount);
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    };
+
+    fetchWalletDetails();
+  }, []);
 
   // Fetch consent and document data
   useEffect(() => {
@@ -51,7 +82,7 @@ export default function ViewConsentDetails() {
             .select("*")
             .eq("id", consentId)
             .single()
-
+          console.log(consentData)
           if (consentError) {
             console.error("Error fetching consent:", consentError)
             Alert.alert("Error", "Failed to load consent details")
@@ -62,6 +93,18 @@ export default function ViewConsentDetails() {
           if (consentData) {
             setConsent(consentData)
 
+            const json= { "applicationID": consentData.app_id, "wallet_address":consentData.wallet_address}
+            const data = JSON.stringify(json);
+            if (!account) {
+              throw new Error("Account is not available yet");
+            }
+            const signedData = algosdk.signBytes(algosdk.coerceToBytes(data),account.sk);
+            console.log(algosdk.bytesToBase64(signedData))
+            const base64data= algosdk.bytesToBase64(signedData);
+
+
+            const result = algosdk.verifyBytes(algosdk.coerceToBytes(data),algosdk.base64ToBytes(base64data),account.addr)
+            console.log(result)
             // Fetch document details
             if (consentData.document_id) {
               const { data: documentData, error: documentError } = await supabase

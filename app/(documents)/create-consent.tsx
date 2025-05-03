@@ -271,7 +271,7 @@ export default function CreateConsent() {
       try {
         console.log("Creating app for wallet address:", walletAddress)
 
-        const response = await fetch("http://172.16.4.103:3000/createApp", {
+        const response = await fetch("http://172.16.5.238:3000/createApp", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -332,7 +332,7 @@ try {
   const consentData = JSON.stringify({ signed_url: signedUrl })
 
   // Call the external encryption API
-  const encryptionResponse = await fetch("http://172.16.4.103:3000/api/encrypt", {
+  const encryptionResponse = await fetch("http://172.16.5.238:3000/api/encrypt", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
