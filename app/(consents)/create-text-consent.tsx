@@ -21,6 +21,8 @@ import { router } from "expo-router"
 import { createClient } from "@supabase/supabase-js"
 import { getStoredSession, getWalletAddress } from "../../utils/secure-storage"
 import DateTimePicker from "@react-native-community/datetimepicker"
+import algosdk from "algosdk"
+import * as SecureStore from "expo-secure-store"
 
 // Initialize Supabase client
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://uorbdplqtxmcdhbnkbmf.supabase.co"
@@ -29,11 +31,36 @@ const supabaseKey =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmJkcGxxdHhtY2RoYm5rYm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2MjE0MTIsImV4cCI6MjA1ODE5NzQxMn0.h01gicHiW7yTjqT2JWCSYRmLAIzBMOlPg-kIy6q8Kk0"
 const supabase = createClient(supabaseUrl, supabaseKey)
 
+// ABI methods for smart contract interaction
+const METHODS = [
+  new algosdk.ABIMethod({
+    name: "createConsent",
+    args: [
+      { type: "string", name: "title" },
+      { type: "string", name: "organization" },
+      { type: "string", name: "description" },
+      { type: "uint64", name: "expiryTimestamp" },
+      { type: "string", name: "dataHash" },
+      { type: "string", name: "signedUrl" },
+      { type: "string", name: "encryptedData" },
+    ],
+    returns: { type: "void" },
+  }),
+  new algosdk.ABIMethod({
+    name: "optIn",
+    args: [],
+    returns: { type: "void" },
+  }),
+]
+
 export default function CreateTextConsent() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [walletAddress, setWalletAddress] = useState("")
   const [userId, setUserId] = useState("")
+  const [appId, setAppId] = useState("")
+  const [appAddress, setAppAddress] = useState("")
+  const [account, setAccount] = useState(null)
 
   // Form state
   const [title, setTitle] = useState("")
@@ -54,6 +81,19 @@ export default function CreateTextConsent() {
         const address = await getWalletAddress()
         if (address) {
           setWalletAddress(address)
+        }
+
+        // Get account from mnemonic
+        try {
+          const mnemonic = await SecureStore.getItemAsync("walletMnemonic")
+          if (mnemonic) {
+            const acc = algosdk.mnemonicToSecretKey(mnemonic)
+            setAccount(acc)
+          } else {
+            console.warn("No mnemonic found in secure storage")
+          }
+        } catch (error) {
+          console.error("Error getting account from mnemonic:", error)
         }
 
         // Get session for user ID
@@ -198,7 +238,41 @@ export default function CreateTextConsent() {
         }
       })
 
-      // Create consent record
+      // Create app for the wallet address
+      let appId = ""
+      let appAddress = ""
+
+      try {
+        console.log("Creating app for wallet address:", walletAddress)
+
+        const response = await fetch("http://172.16.5.238:3000/createApp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            owner: walletAddress,
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`)
+        }
+
+        const appData = await response.json()
+        appId = appData.appId
+        appAddress = appData.appAddress
+
+        setAppId(appId)
+        setAppAddress(appAddress)
+
+        console.log("App created successfully:", appData)
+      } catch (error) {
+        console.error("Error creating app:", error)
+        throw new Error(`Failed to create app: ${error.message}`)
+      }
+
+      // Create consent record with app_id and app_address
       const { data: consentData, error: consentError } = await supabase
         .from("user_consents")
         .insert([
@@ -213,12 +287,218 @@ export default function CreateTextConsent() {
             expires_at: expiryEnabled ? expiryDate.toISOString() : null,
             status: "active",
             data: data, // Store the text data in the data field
+            app_id: appId, // Add the app_id
+            app_address: appAddress, // Add the app_address
           },
         ])
         .select()
 
       if (consentError) {
         throw new Error(`Failed to create consent: ${consentError.message}`)
+      }
+
+      // Implement the Algorand blockchain interaction
+      try {
+        // Check if account is available
+        if (!account) {
+          // Get account from mnemonic if not already loaded
+          const mnemonic = await SecureStore.getItemAsync("walletMnemonic")
+          if (!mnemonic) throw new Error("No mnemonic found")
+
+          // Get account
+          const acc = algosdk.mnemonicToSecretKey(mnemonic)
+          setAccount(acc)
+
+          // Initialize Algorand client
+          const algodClient = new algosdk.Algodv2("", "https://testnet-api.algonode.cloud", "")
+          const suggestedParams = await algodClient.getTransactionParams().do()
+
+          // Make payment transaction to app address
+          const txn1 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+            sender: acc.addr,
+            receiver: appAddress,
+            amount: 1000000, // 1 Algo
+            suggestedParams,
+          })
+
+          const signedTxn = txn1.signTxn(acc.sk)
+          const { txid } = await algodClient.sendRawTransaction(signedTxn).do()
+          await algosdk.waitForConfirmation(algodClient, txid, 4)
+
+          // Prepare box key and data
+          const boxKey = algosdk.coerceToBytes("consentData")
+
+          // Create consent data JSON
+          const consentDataString = JSON.stringify(data)
+
+          // Encrypt the data
+          let encryptedData
+          try {
+            // Call the external encryption API
+            const encryptionResponse = await fetch("http://172.16.5.238:3000/api/encrypt", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                data: consentDataString,
+              }),
+            })
+
+            if (!encryptionResponse.ok) {
+              throw new Error(`Encryption API error: ${encryptionResponse.status}`)
+            }
+
+            const encryptionResult = await encryptionResponse.json()
+            encryptedData = encryptionResult.encryptedData || encryptionResult.result
+            console.log("Data encrypted successfully via API")
+          } catch (error) {
+            console.error("Encryption API error:", error)
+            // Fallback to unencrypted data if encryption fails
+            encryptedData = consentDataString
+            Alert.alert("Warning", "Could not encrypt data securely. Proceeding with unencrypted data.")
+          }
+
+          // Create AtomicTransactionComposer for smart contract calls
+          const atc = new algosdk.AtomicTransactionComposer()
+
+          
+
+          // Calculate expiry timestamp in seconds
+          const expiryTimestamp = expiryEnabled ? Math.floor(expiryDate.getTime() / 1000) : 0
+
+          // Generate a simple hash for the data
+          const dataHash = "hash" + Math.floor(Math.random() * 1000000)
+
+          // Add storeConsent method call
+          atc.addMethodCall({
+            appID: Number(appId),
+            method: METHODS[0], // storeConsent method
+            signer: algosdk.makeBasicAccountTransactionSigner(acc),
+            methodArgs: [
+              title,
+              organization,
+              description || "",
+              expiryEnabled ? expiryTimestamp : 0,
+              dataHash,
+              "Null", // signedUrl - using "Null" as requested
+              encryptedData,
+            ],
+            sender: walletAddress,
+            suggestedParams: { ...suggestedParams, fee: Number(30) },
+            boxes: [
+              {
+                appIndex: Number(appId),
+                name: boxKey,
+              },
+            ],
+          })
+
+          // Execute the transaction
+          const result = await atc.execute(algodClient, 4)
+          console.log("Smart contract execution result:", result)
+          for (const mr of result.methodResults) {
+            console.log(`Method result: ${mr.returnValue}`)
+          }
+        } else {
+          // Use the already loaded account
+          const algodClient = new algosdk.Algodv2("", "https://testnet-api.algonode.cloud", "")
+          const suggestedParams = await algodClient.getTransactionParams().do()
+
+          // Make payment transaction to app address
+          const txn1 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+            sender: account.addr,
+            receiver: appAddress,
+            amount: 1000000, // 1 Algo
+            suggestedParams,
+          })
+
+          const signedTxn = txn1.signTxn(account.sk)
+          const { txid } = await algodClient.sendRawTransaction(signedTxn).do()
+          await algosdk.waitForConfirmation(algodClient, txid, 4)
+
+          // Prepare box key and data
+          const boxKey = algosdk.coerceToBytes("consentData")
+
+          // Create consent data JSON
+          const consentDataString = JSON.stringify(data)
+
+          // Encrypt the data
+          let encryptedData
+          try {
+            // Call the external encryption API
+            const encryptionResponse = await fetch("http://172.16.5.238:3000/api/encrypt", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                data: consentDataString,
+              }),
+            })
+
+            if (!encryptionResponse.ok) {
+              throw new Error(`Encryption API error: ${encryptionResponse.status}`)
+            }
+
+            const encryptionResult = await encryptionResponse.json()
+            encryptedData = encryptionResult.encryptedData || encryptionResult.result
+            console.log("Data encrypted successfully via API")
+          } catch (error) {
+            console.error("Encryption API error:", error)
+            // Fallback to unencrypted data if encryption fails
+            encryptedData = consentDataString
+            Alert.alert("Warning", "Could not encrypt data securely. Proceeding with unencrypted data.")
+          }
+
+          // Create AtomicTransactionComposer for smart contract calls
+          const atc = new algosdk.AtomicTransactionComposer()
+
+         
+
+          // Calculate expiry timestamp in seconds
+          const expiryTimestamp = expiryEnabled ? Math.floor(expiryDate.getTime() / 1000) : 0
+
+          // Generate a simple hash for the data
+          const dataHash = "hash" + Math.floor(Math.random() * 1000000)
+
+          // Add storeConsent method call
+          atc.addMethodCall({
+            appID: Number(appId),
+            method: METHODS[0], // storeConsent method
+            signer: algosdk.makeBasicAccountTransactionSigner(account),
+            methodArgs: [
+              title,
+              organization,
+              description || "",
+              expiryEnabled ? expiryTimestamp : 0,
+              dataHash,
+              "Null", // signedUrl - using "Null" as requested
+              encryptedData,
+            ],
+            sender: walletAddress,
+            suggestedParams: { ...suggestedParams, fee: Number(30) },
+            boxes: [
+              {
+                appIndex: Number(appId),
+                name: boxKey,
+              },
+            ],
+          })
+
+          // Execute the transaction
+          const result = await atc.execute(algodClient, 4)
+          console.log("Smart contract execution result:", result)
+          for (const mr of result.methodResults) {
+            console.log(`Method result: ${mr.returnValue}`)
+          }
+        }
+      } catch (error) {
+        console.error("Error in blockchain interaction:", error)
+        Alert.alert(
+          "Warning",
+          `Blockchain interaction failed: ${error.message}. Your consent was saved to the database but not to the blockchain.`,
+        )
       }
 
       Alert.alert("Success", "Text consent created successfully", [{ text: "OK", onPress: () => router.back() }])
@@ -618,4 +898,3 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 })
-

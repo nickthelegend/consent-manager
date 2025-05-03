@@ -10,7 +10,7 @@ import { createClient } from "@supabase/supabase-js"
 import { getStoredSession } from "../../utils/secure-storage"
 // Update the import statement to use QRCodeStyled
 import QRCodeStyled from "react-native-qrcode-styled"
-import algosdk, { base64ToBytes } from "algosdk"
+import algosdk from "algosdk"
 // Initialize Supabase client
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://uorbdplqtxmcdhbnkbmf.supabase.co"
 const supabaseKey =
@@ -27,40 +27,50 @@ export default function ViewConsentDetails() {
   const [loading, setLoading] = useState(true)
   const [consent, setConsent] = useState(null)
   const [document, setDocument] = useState(null)
+  const [consentData, setConsentData] = useState(null)
 
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [account, setAccount] = useState<algosdk.Account | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null)
+  const [account, setAccount] = useState<algosdk.Account | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [walletLoaded, setWalletLoaded] = useState(false)
 
-
-   useEffect(() => {
+  // Fetch wallet details first
+  useEffect(() => {
     const fetchWalletDetails = async () => {
       try {
-        const mnemonic = await SecureStore.getItemAsync("walletMnemonic");
-        if (!mnemonic) throw new Error("No mnemonic found");
+        const mnemonic = await SecureStore.getItemAsync("walletMnemonic")
+        if (!mnemonic) {
+          setError("No mnemonic found")
+          setWalletLoaded(true)
+          return
+        }
 
-        const derivedAccount = algosdk.mnemonicToSecretKey(mnemonic);
+        const derivedAccount = algosdk.mnemonicToSecretKey(mnemonic)
 
-        const storedWalletAddress = await SecureStore.getItemAsync("walletAddress");
-        if (!storedWalletAddress) throw new Error("Wallet not found");
+        const storedWalletAddress = await SecureStore.getItemAsync("walletAddress")
+        if (!storedWalletAddress) {
+          setError("Wallet not found")
+          setWalletLoaded(true)
+          return
+        }
 
-
-
-
-
-        setWalletAddress(storedWalletAddress);
-        setAccount(derivedAccount);
+        setWalletAddress(storedWalletAddress)
+        setAccount(derivedAccount)
+        setWalletLoaded(true)
       } catch (err) {
-        setError((err as Error).message);
+        setError((err as Error).message)
+        setWalletLoaded(true)
       }
-    };
+    }
 
-    fetchWalletDetails();
-  }, []);
+    fetchWalletDetails()
+  }, [])
 
-  // Fetch consent and document data
+  // Fetch consent data after wallet is loaded
   useEffect(() => {
-    const fetchData = async () => {
+    if (!walletLoaded) return
+
+    const fetchConsentData = async () => {
       try {
         setLoading(true)
 
@@ -77,12 +87,12 @@ export default function ViewConsentDetails() {
 
         // Fetch consent details
         if (consentId) {
-          const { data: consentData, error: consentError } = await supabase
+          const { data, error: consentError } = await supabase
             .from("user_consents")
             .select("*")
             .eq("id", consentId)
             .single()
-          console.log(consentData)
+
           if (consentError) {
             console.error("Error fetching consent:", consentError)
             Alert.alert("Error", "Failed to load consent details")
@@ -90,27 +100,15 @@ export default function ViewConsentDetails() {
             return
           }
 
-          if (consentData) {
-            setConsent(consentData)
+          if (data) {
+            setConsentData(data)
 
-            const json= { "applicationID": consentData.app_id, "wallet_address":consentData.wallet_address}
-            const data = JSON.stringify(json);
-            if (!account) {
-              throw new Error("Account is not available yet");
-            }
-            const signedData = algosdk.signBytes(algosdk.coerceToBytes(data),account.sk);
-            console.log(algosdk.bytesToBase64(signedData))
-            const base64data= algosdk.bytesToBase64(signedData);
-
-
-            const result = algosdk.verifyBytes(algosdk.coerceToBytes(data),algosdk.base64ToBytes(base64data),account.addr)
-            console.log(result)
-            // Fetch document details
-            if (consentData.document_id) {
+            // Fetch document details if needed
+            if (data.document_id) {
               const { data: documentData, error: documentError } = await supabase
                 .from("user_uploads")
                 .select("*")
-                .eq("id", consentData.document_id)
+                .eq("id", data.document_id)
                 .single()
 
               if (documentError) {
@@ -128,15 +126,58 @@ export default function ViewConsentDetails() {
           router.back()
         }
       } catch (error) {
-        console.error("Error fetching data:", error)
-        Alert.alert("Error", "Failed to load data")
+        console.error("Error fetching consent data:", error)
+        Alert.alert("Error", "Failed to load consent data")
       } finally {
         setLoading(false)
       }
     }
 
-    fetchData()
-  }, [consentId])
+    fetchConsentData()
+  }, [walletLoaded, consentId])
+
+  // Generate QR code URL when both account and consent data are available
+  useEffect(() => {
+    if (!account || !consentData) return
+
+    try {
+      // Create the JSON object for the QR code
+      const json = {
+        applicationID: consentData.app_id,
+        sender: consentData.wallet_address,
+      }
+      const data = JSON.stringify(json)
+
+      // Sign the data with the account's secret key
+      const signedData = algosdk.signBytes(algosdk.coerceToBytes(data), account.sk)
+      const base64Signature = algosdk.bytesToBase64(signedData)
+
+      // Create a new JSON object that includes the hash
+      const jsonWithHash = {
+        applicationID: consentData.app_id,
+        sender: consentData.wallet_address,
+        hash: base64Signature,
+      }
+
+      // Convert the JSON with hash to base64
+      const base64JsonWithHash = btoa(JSON.stringify(jsonWithHash))
+
+      // Create the URL for the QR code
+      const qrCodeUrl = `http://localhost:3000/consent/${base64JsonWithHash}`
+
+      // Update the consent object with the new signed_url
+      setConsent({
+        ...consentData,
+        signed_url: qrCodeUrl,
+      })
+
+      console.log("QR Code URL:", qrCodeUrl)
+    } catch (error) {
+      console.error("Error generating QR code:", error)
+      setConsent(consentData) // Set consent without signed_url
+      Alert.alert("Error", "Failed to generate QR code")
+    }
+  }, [account, consentData])
 
   // Format date
   const formatDate = (dateString) => {
@@ -191,7 +232,7 @@ export default function ViewConsentDetails() {
 
     try {
       await Share.share({
-        message: `Access document: ${consent.signed_url}`,
+        message: consent.signed_url, // Only share the URL itself
         title: `Shared Document: ${consent.title}`,
       })
     } catch (error) {
@@ -257,6 +298,18 @@ export default function ViewConsentDetails() {
       <LinearGradient colors={["#000000", "#121212"]} style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#6a11cb" />
         <Text style={styles.loadingText}>Loading consent details...</Text>
+      </LinearGradient>
+    )
+  }
+
+  if (error && !consent) {
+    return (
+      <LinearGradient colors={["#000000", "#121212"]} style={styles.loadingContainer}>
+        <Ionicons name="alert-circle-outline" size={50} color="#FF5555" />
+        <Text style={styles.errorText}>Error: {error}</Text>
+        <TouchableOpacity style={styles.backButtonError} onPress={() => router.back()}>
+          <Text style={styles.backButtonErrorText}>Go Back</Text>
+        </TouchableOpacity>
       </LinearGradient>
     )
   }
@@ -421,6 +474,18 @@ export default function ViewConsentDetails() {
                   </View>
                 )}
 
+                {!consent.signed_url && consent.status === "active" && (
+                  <View style={styles.qrCodeCard}>
+                    <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.qrCodeCardGradient}>
+                      <Text style={styles.sectionTitle}>Access QR Code</Text>
+                      <View style={styles.qrErrorContainer}>
+                        <Ionicons name="warning-outline" size={40} color="#FFC107" />
+                        <Text style={styles.qrErrorText}>Could not generate QR code. Wallet access is required.</Text>
+                      </View>
+                    </LinearGradient>
+                  </View>
+                )}
+
                 {consent.status === "active" && (
                   <TouchableOpacity style={styles.revokeButton} onPress={handleRevokeConsent}>
                     <LinearGradient colors={["#FF5555", "#CC0000"]} style={styles.revokeButtonGradient}>
@@ -455,6 +520,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Poppins-Medium",
     color: "#FFFFFF",
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontFamily: "Poppins-Medium",
+    color: "#FFFFFF",
+    textAlign: "center",
+    marginHorizontal: 20,
+  },
+  backButtonError: {
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 8,
+  },
+  backButtonErrorText: {
+    color: "#FFFFFF",
+    fontFamily: "Poppins-Medium",
+    fontSize: 16,
   },
   header: {
     flexDirection: "row",
@@ -643,9 +728,20 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 12,
     marginBottom: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
+  },
+  qrErrorContainer: {
+    alignItems: "center",
+    padding: 20,
+  },
+  qrErrorText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
+    color: "#AAAAAA",
+    textAlign: "center",
+    marginTop: 10,
   },
   shareButton: {
     width: "100%",
