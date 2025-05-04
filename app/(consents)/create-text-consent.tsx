@@ -245,7 +245,7 @@ export default function CreateTextConsent() {
       try {
         console.log("Creating app for wallet address:", walletAddress)
 
-        const response = await fetch("http://172.16.5.238:3000/createApp", {
+        const response = await fetch("https://algolocker.abcxjntuh.in/createApp", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -335,7 +335,7 @@ export default function CreateTextConsent() {
           let encryptedData
           try {
             // Call the external encryption API
-            const encryptionResponse = await fetch("http://172.16.5.238:3000/api/encrypt", {
+            const encryptionResponse = await fetch("https://algolocker.abcxjntuh.in/api/encrypt", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -427,7 +427,7 @@ export default function CreateTextConsent() {
           let encryptedData
           try {
             // Call the external encryption API
-            const encryptionResponse = await fetch("http://172.16.5.238:3000/api/encrypt", {
+            const encryptionResponse = await fetch("https://algolocker.abcxjntuh.in/api/encrypt", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",

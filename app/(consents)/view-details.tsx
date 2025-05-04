@@ -163,7 +163,7 @@ export default function ViewConsentDetails() {
       const base64JsonWithHash = btoa(JSON.stringify(jsonWithHash))
 
       // Create the URL for the QR code
-      const qrCodeUrl = `http://localhost:3000/consent/${base64JsonWithHash}`
+      const qrCodeUrl = `https://algolocker.abcxjntuh.in/consent/${base64JsonWithHash}`
 
       // Update the consent object with the new signed_url
       setConsent({

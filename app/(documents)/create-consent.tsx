@@ -41,7 +41,6 @@ const METHODS = [
       { type: "string", name: "organization", desc: "" },
       { type: "uint64", name: "duration", desc: "" },
       { type: "string", name: "consentHash", desc: "" },
-      { type: "string", name: "signedUrl", desc: "" },
       { type: "string", name: "consetData", desc: "" },
     ],
     returns: { type: "void", desc: "" },
@@ -266,7 +265,7 @@ export default function CreateConsent() {
       try {
         console.log("Creating app for wallet address:", walletAddress)
 
-        const response = await fetch("http://172.16.4.103:3000/createApp", {
+        const response = await fetch("https://algolocker.abcxjntuh.in/createApp", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -316,7 +315,7 @@ export default function CreateConsent() {
         let encryptedData
         try {
           // Call the external encryption API
-          const encryptionResponse = await fetch("http://172.16.4.103:3000/api/encrypt", {
+          const encryptionResponse = await fetch("https://algolocker.abcxjntuh.in/api/encrypt", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -361,7 +360,6 @@ export default function CreateConsent() {
             organization,
             expiryEnabled ? Math.floor(expiryDate.getTime() / 1000) : 1742714450,
             "hash",
-            signedUrl,
             encryptedData,
           ],
           sender: walletAddress,
