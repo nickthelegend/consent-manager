@@ -44,6 +44,7 @@ export default function ViewDocument() {
     const fetchDocument = async () => {
       try {
         setLoading(true)
+        console.log("Fetching document for ID:", documentId)
 
         // Get session
         const session = await getStoredSession()
@@ -61,15 +62,15 @@ export default function ViewDocument() {
           const { data, error } = await supabase.from("user_uploads").select("*").eq("id", documentId).single()
 
           if (error) {
-            console.error("Error fetching document:", error)
-            Alert.alert("Error", "Failed to load document details")
+            console.error("Error fetching document from Supabase:", error)
+            Alert.alert("Error", "Failed to load document details. " + error.message)
             router.back()
             return
           }
 
           if (data) {
             setDocument(data)
-            console.log("Document data loaded:", data) // For debugging
+            console.log("Document data loaded:", JSON.stringify(data, null, 2)) // For debugging
           } else {
             Alert.alert("Error", "Document not found")
             router.back()
@@ -79,8 +80,8 @@ export default function ViewDocument() {
           router.back()
         }
       } catch (error) {
-        console.error("Error fetching document:", error)
-        Alert.alert("Error", "Failed to load document")
+        console.error("Critical error in fetchDocument:", error)
+        Alert.alert("Error", "Failed to load document due to an unexpected error.")
       } finally {
         setLoading(false)
       }
@@ -92,29 +93,27 @@ export default function ViewDocument() {
   // Handle download document
   const handleDownload = async () => {
     if (!document?.file_url) {
-      Alert.alert("Error", "No file URL available")
+      Alert.alert("Error", "No file URL available for download.")
       return
     }
+    console.log("Attempting to download:", document.file_url)
 
     try {
       setDownloading(true)
-
-      // Extract filename from URL
-      const fileName = document.file_url.split("/").pop()
+      const fileName = document.file_url.split("/").pop()?.split("?")[0] || `downloaded_file_${Date.now()}` // Handle query params in URL
       const fileUri = `${FileSystem.documentDirectory}${fileName}`
 
-      // Download the file
       const downloadResult = await FileSystem.downloadAsync(document.file_url, fileUri)
 
       if (downloadResult.status === 200) {
-        // Share the file
         await Sharing.shareAsync(fileUri)
       } else {
-        Alert.alert("Error", "Failed to download file")
+        console.error("Download failed:", downloadResult)
+        Alert.alert("Error", `Failed to download file. Status: ${downloadResult.status}`)
       }
     } catch (error) {
       console.error("Error downloading file:", error)
-      Alert.alert("Error", "Failed to download file")
+      Alert.alert("Error", "An error occurred while trying to download the file.")
     } finally {
       setDownloading(false)
     }
@@ -129,7 +128,7 @@ export default function ViewDocument() {
 
   // Format file size
   const formatFileSize = (bytes) => {
-    if (!bytes) return "Unknown"
+    if (bytes === null || typeof bytes === "undefined") return "Unknown"
     if (bytes < 1024) return bytes + " B"
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB"
     return (bytes / (1024 * 1024)).toFixed(1) + " MB"
@@ -140,7 +139,7 @@ export default function ViewDocument() {
     if (document?.id) {
       router.push({
         pathname: "/(documents)/create-consent",
-        params: { documentId: document.id },
+        params: { documentId: document.id, documentTitle: document.title },
       })
     } else {
       Alert.alert("Error", "Document ID is missing, cannot create consent.")
@@ -150,53 +149,62 @@ export default function ViewDocument() {
   // Render document content based on file type
   const renderDocumentContent = () => {
     if (!document?.file_url) {
+      console.log("renderDocumentContent: No file_url found in document object:", document)
       return (
         <View style={styles.noContentContainer}>
-          <FontAwesome5 name="file-alt" size={60} color="#333333" />
-          <Text style={styles.noContentText}>No file content available</Text>
+          <FontAwesome5 name="file-excel" size={60} color="#AAAAAA" />
+          <Text style={styles.noContentText}>No file content available to preview.</Text>
         </View>
       )
     }
 
     const fileType = document.file_type || ""
-    console.log("Rendering content for fileType:", fileType, "URL:", document.file_url)
+    const fileUrl = document.file_url
+    console.log(`renderDocumentContent: Attempting to render type "${fileType}" from URL: ${fileUrl}`)
 
     if (fileType.includes("image")) {
-      console.log("Attempting to render Image from URL:", document.file_url)
       return (
         <View style={styles.imageContainer}>
           <Image
-            source={{ uri: document.file_url }}
+            key={fileUrl}
+            source={{ uri: fileUrl }}
             style={styles.imageViewer}
             resizeMode="contain"
-            onError={(e) => console.error("Image load error:", e.nativeEvent.error)}
+            onError={(e) => console.error("Image load error:", e.nativeEvent.error, "URL:", fileUrl)}
+            onLoad={() => console.log("Image loaded successfully:", fileUrl)}
           />
         </View>
       )
     } else if (fileType.includes("pdf")) {
-      console.log("Attempting to render PDF from URL:", document.file_url)
       return (
         <View style={styles.pdfContainer}>
           <PDFReader
-            source={{ uri: document.file_url }}
+            key={fileUrl}
+            source={{ uri: fileUrl }}
             style={styles.pdfViewer}
             withPinchZoom
             withScroll
-            onError={(error) => console.error("PDF load error:", error)}
+            onError={(error) => console.error("PDF load error:", error, "URL:", fileUrl)}
+            onLoad={() => console.log("PDF loaded successfully:", fileUrl)}
           />
         </View>
       )
     } else {
+      console.log(`renderDocumentContent: Unsupported file type "${fileType}" for preview.`)
       return (
         <View style={styles.unsupportedContainer}>
-          <FontAwesome5 name="file-alt" size={60} color="#333333" />
+          <FontAwesome5 name="file-alt" size={60} color="#AAAAAA" />
           <Text style={styles.unsupportedText}>
-            This file type ({fileType.split("/")[1]?.toUpperCase() || "UNKNOWN"}) cannot be previewed.
+            Preview is not available for this file type ({(fileType.split("/")[1] || "UNKNOWN").toUpperCase()}).
           </Text>
-          <TouchableOpacity style={styles.downloadButton} onPress={handleDownload}>
+          <TouchableOpacity style={styles.downloadButtonAlt} onPress={handleDownload} disabled={downloading}>
             <LinearGradient colors={["#6a11cb", "#2575fc"]} style={styles.downloadButtonGradient}>
+              {downloading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Ionicons name="download-outline" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+              )}
               <Text style={styles.downloadButtonText}>Download File</Text>
-              <Ionicons name="download" size={20} color="#FFFFFF" style={{ marginLeft: 8 }} />
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -213,6 +221,18 @@ export default function ViewDocument() {
     )
   }
 
+  if (!document) {
+    return (
+      <LinearGradient colors={["#000000", "#121212"]} style={styles.loadingContainer}>
+        <FontAwesome5 name="exclamation-triangle" size={48} color="#FF6B6B" />
+        <Text style={[styles.loadingText, { color: "#FF6B6B", marginTop: 20 }]}>Document could not be loaded.</Text>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20 }}>
+          <Text style={{ color: "#6a11cb", fontFamily: "Poppins-Medium" }}>Go Back</Text>
+        </TouchableOpacity>
+      </LinearGradient>
+    )
+  }
+
   return (
     <LinearGradient colors={["#000000", "#121212"]} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
@@ -220,7 +240,9 @@ export default function ViewDocument() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>View Document</Text>
+          <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+            {document.title || "View Document"}
+          </Text>
           {document?.file_url && (
             <TouchableOpacity style={styles.downloadIconButton} onPress={handleDownload} disabled={downloading}>
               {downloading ? (
@@ -232,72 +254,67 @@ export default function ViewDocument() {
           )}
         </View>
 
-        <ScrollView>
-          {document && (
-            <View style={styles.documentInfoContainer}>
-              <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.documentInfoGradient}>
-                <View style={styles.documentTitleContainer}>
-                  <View style={styles.documentIconContainer}>
-                    <LinearGradient
-                      colors={
-                        document.category === "medical"
-                          ? ["#4a00e0", "#8e2de2"]
-                          : document.category === "research"
-                            ? ["#00b09b", "#96c93d"]
-                            : document.category === "legal"
-                              ? ["#ff9966", "#ff5e62"]
-                              : document.category === "marketing"
-                                ? ["#fc4a1a", "#f7b733"]
-                                : ["#6a11cb", "#2575fc"]
-                      }
-                      style={styles.documentIcon}
-                    >
-                      {document.file_type?.includes("pdf") ? (
-                        <FontAwesome5 name="file-pdf" size={24} color="#FFFFFF" />
-                      ) : document.file_type?.includes("image") ? (
-                        <FontAwesome5 name="file-image" size={24} color="#FFFFFF" />
-                      ) : document.file_type?.includes("word") || document.file_type?.includes("document") ? (
-                        <FontAwesome5 name="file-word" size={24} color="#FFFFFF" />
-                      ) : (
-                        <FontAwesome5 name="file-alt" size={24} color="#FFFFFF" />
-                      )}
-                    </LinearGradient>
-                  </View>
-                  <View style={styles.documentTitleWrapper}>
-                    <Text style={styles.documentTitle} numberOfLines={2} ellipsizeMode="tail">
-                      {document.title}
-                    </Text>
-                    <Text style={styles.documentCategory}>
-                      {document.category?.charAt(0).toUpperCase() + document.category?.slice(1) || "Other"}
-                    </Text>
-                  </View>
+        <ScrollView contentContainerStyle={styles.scrollContentContainer}>
+          <View style={styles.documentInfoContainer}>
+            <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.documentInfoGradient}>
+              <View style={styles.documentTitleContainer}>
+                <View style={styles.documentIconContainer}>
+                  <LinearGradient
+                    colors={
+                      document.category === "medical"
+                        ? ["#4a00e0", "#8e2de2"]
+                        : document.category === "research"
+                          ? ["#00b09b", "#96c93d"]
+                          : document.category === "legal"
+                            ? ["#ff9966", "#ff5e62"]
+                            : document.category === "marketing"
+                              ? ["#fc4a1a", "#f7b733"]
+                              : ["#6a11cb", "#2575fc"]
+                    }
+                    style={styles.documentIcon}
+                  >
+                    {document.file_type?.includes("pdf") ? (
+                      <FontAwesome5 name="file-pdf" size={24} color="#FFFFFF" />
+                    ) : document.file_type?.includes("image") ? (
+                      <FontAwesome5 name="file-image" size={24} color="#FFFFFF" />
+                    ) : document.file_type?.includes("word") || document.file_type?.includes("document") ? (
+                      <FontAwesome5 name="file-word" size={24} color="#FFFFFF" />
+                    ) : (
+                      <FontAwesome5 name="file-alt" size={24} color="#FFFFFF" />
+                    )}
+                  </LinearGradient>
                 </View>
-
-                <View style={styles.documentMetaContainer}>
-                  <View style={styles.documentMetaItem}>
-                    <Ionicons name="calendar-outline" size={16} color="#AAAAAA" />
-                    <Text style={styles.documentMetaText}>Uploaded: {formatDate(document.created_at)}</Text>
-                  </View>
-                  <View style={styles.documentMetaItem}>
-                    <Ionicons name="document-outline" size={16} color="#AAAAAA" />
-                    <Text style={styles.documentMetaText}>
-                      {document.file_type?.split("/")[1]?.toUpperCase() || "FILE"} •{" "}
-                      {formatFileSize(document.file_size)}
-                    </Text>
-                  </View>
+                <View style={styles.documentTitleWrapper}>
+                  <Text style={styles.documentTitle} numberOfLines={2} ellipsizeMode="tail">
+                    {document.title}
+                  </Text>
+                  <Text style={styles.documentCategory}>
+                    {document.category?.charAt(0).toUpperCase() + document.category?.slice(1) || "Other"}
+                  </Text>
                 </View>
-              </LinearGradient>
-            </View>
-          )}
+              </View>
 
-          {document && (
-            <TouchableOpacity style={styles.createConsentButton} onPress={handleCreateConsent}>
-              <LinearGradient colors={["#6a11cb", "#2575fc"]} style={styles.createConsentButtonGradient}>
-                <Ionicons name="shield-checkmark-outline" size={22} color="#FFFFFF" style={{ marginRight: 10 }} />
-                <Text style={styles.createConsentButtonText}>Create Consent for this Document</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
+              <View style={styles.documentMetaContainer}>
+                <View style={styles.documentMetaItem}>
+                  <Ionicons name="calendar-outline" size={16} color="#AAAAAA" />
+                  <Text style={styles.documentMetaText}>Uploaded: {formatDate(document.created_at)}</Text>
+                </View>
+                <View style={styles.documentMetaItem}>
+                  <Ionicons name="document-outline" size={16} color="#AAAAAA" />
+                  <Text style={styles.documentMetaText}>
+                    {(document.file_type?.split("/")[1] || "FILE").toUpperCase()} • {formatFileSize(document.file_size)}
+                  </Text>
+                </View>
+              </View>
+            </LinearGradient>
+          </View>
+
+          <TouchableOpacity style={styles.createConsentButton} onPress={handleCreateConsent}>
+            <LinearGradient colors={["#6a11cb", "#2575fc"]} style={styles.createConsentButtonGradient}>
+              <Ionicons name="shield-checkmark-outline" size={22} color="#FFFFFF" style={{ marginRight: 10 }} />
+              <Text style={styles.createConsentButtonText}>Create Consent for this Document</Text>
+            </LinearGradient>
+          </TouchableOpacity>
 
           <View style={styles.documentContentContainerOuter}>
             <View style={styles.documentContentContainerInner}>{renderDocumentContent()}</View>
@@ -319,12 +336,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 20,
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
     fontFamily: "Poppins-Medium",
     color: "#FFFFFF",
+    textAlign: "center",
   },
   header: {
     flexDirection: "row",
@@ -333,40 +352,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#2A2A2A",
+    borderBottomColor: "rgba(255, 255, 255, 0.1)", // Lighter border
+    minHeight: 60,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    padding: 5, // Easier to tap
   },
   headerTitle: {
+    flex: 1, // Allow title to take space and ellipsize
+    textAlign: "center",
     fontSize: 20,
     fontFamily: "Poppins-Bold",
     color: "#FFFFFF",
+    marginHorizontal: 10, // Space around title
   },
   downloadIconButton: {
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    padding: 5, // Easier to tap
+  },
+  scrollContentContainer: {
+    paddingBottom: 20, // Ensure space at the bottom of scroll
   },
   documentInfoContainer: {
     marginHorizontal: 20,
-    marginTop: 15, // Added margin top
+    marginTop: 15,
     marginBottom: 15,
     borderRadius: 12,
     overflow: "hidden",
+    backgroundColor: "#1E1E1E", // Fallback bg
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6,
   },
   documentInfoGradient: {
     padding: 15,
@@ -380,8 +397,8 @@ const styles = StyleSheet.create({
     marginRight: 15,
   },
   documentIcon: {
-    width: 45,
-    height: 45,
+    width: 48, // Slightly larger icon
+    height: 48,
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
@@ -391,7 +408,7 @@ const styles = StyleSheet.create({
   },
   documentTitle: {
     fontSize: 18,
-    fontFamily: "Poppins-Medium",
+    fontFamily: "Poppins-SemiBold", // Bolder title
     color: "#FFFFFF",
     marginBottom: 4,
   },
@@ -401,19 +418,21 @@ const styles = StyleSheet.create({
     color: "#AAAAAA",
   },
   documentMetaContainer: {
-    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    backgroundColor: "rgba(0, 0, 0, 0.3)", // Darker meta bg
     borderRadius: 8,
-    padding: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginTop: 8,
   },
   documentMetaItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 4,
+    marginVertical: 3, // Spacing for meta items
   },
   documentMetaText: {
-    fontSize: 14,
+    fontSize: 13, // Slightly smaller meta text
     fontFamily: "Poppins-Regular",
-    color: "#AAAAAA",
+    color: "#BBBBBB", // Lighter meta text
     marginLeft: 8,
   },
   createConsentButton: {
@@ -440,32 +459,34 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   documentContentContainerOuter: {
-    // New style for outer container
-    flex: 1, // Make it take remaining space
+    height: height * 0.45, // Explicit height (45% of screen height)
     marginHorizontal: 20,
-    marginBottom: 20, // Add some bottom margin
     backgroundColor: "#1A1A1A",
-    borderRadius: 12, // Rounded corners for the content area
-    overflow: "hidden", // Clip child content (PDFReader/Image)
-    minHeight: height * 0.4, // Ensure it has some minimum height
+    borderRadius: 12,
+    overflow: "hidden", // Important for child borderRadius and content clipping
+    // borderWidth: 1, borderColor: 'magenta', // For debugging layout
   },
   documentContentContainerInner: {
-    // New style for inner container
     flex: 1,
+    borderRadius: 12, // Ensure inner container also respects border radius if needed
+    overflow: "hidden", // Clip content like PDF viewer
+    // borderWidth: 1, borderColor: 'cyan', // For debugging layout
   },
   imageContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 5, // Reduced padding
+    padding: 0, // No padding, let image fill
+    // backgroundColor: 'green', // For debugging
   },
   imageViewer: {
-    width: "100%", // Use percentage for responsiveness within container
-    height: "100%", // Use percentage
-    borderRadius: 8,
+    width: "100%",
+    height: "100%",
+    // borderRadius: 8, // Removed if parent clips
   },
   pdfContainer: {
     flex: 1,
+    // backgroundColor: 'yellow', // For debugging
   },
   pdfViewer: {
     flex: 1,
@@ -477,41 +498,42 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
-    minHeight: 200, // Ensure it's visible
+    // backgroundColor: 'grey', // For debugging
   },
   unsupportedText: {
     fontSize: 16,
     fontFamily: "Poppins-Medium",
-    color: "#FFFFFF",
+    color: "#DDDDDD",
     textAlign: "center",
     marginTop: 20,
-    marginBottom: 30,
+    marginBottom: 25,
   },
   noContentContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
-    minHeight: 200, // Ensure it's visible
+    // backgroundColor: 'darkgrey', // For debugging
   },
   noContentText: {
     fontSize: 16,
     fontFamily: "Poppins-Medium",
-    color: "#FFFFFF",
+    color: "#AAAAAA",
     textAlign: "center",
     marginTop: 20,
   },
-  downloadButton: {
+  downloadButtonAlt: {
+    // Style for download button in unsupported view
     borderRadius: 12,
     overflow: "hidden",
-    marginTop: 20,
+    marginTop: 10,
   },
   downloadButtonGradient: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
   downloadButtonText: {
     fontSize: 16,
