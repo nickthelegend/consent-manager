@@ -1,7 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Image, Dimensions, Alert } from "react-native"
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  Image,
+  Dimensions,
+  Alert,
+  ScrollView,
+} from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { LinearGradient } from "expo-linear-gradient"
 import { Ionicons, FontAwesome5 } from "@expo/vector-icons"
@@ -59,6 +69,7 @@ export default function ViewDocument() {
 
           if (data) {
             setDocument(data)
+            console.log("Document data loaded:", data) // For debugging
           } else {
             Alert.alert("Error", "Document not found")
             router.back()
@@ -124,6 +135,18 @@ export default function ViewDocument() {
     return (bytes / (1024 * 1024)).toFixed(1) + " MB"
   }
 
+  // Handle Create Consent Navigation
+  const handleCreateConsent = () => {
+    if (document?.id) {
+      router.push({
+        pathname: "/(documents)/create-consent",
+        params: { documentId: document.id },
+      })
+    } else {
+      Alert.alert("Error", "Document ID is missing, cannot create consent.")
+    }
+  }
+
   // Render document content based on file type
   const renderDocumentContent = () => {
     if (!document?.file_url) {
@@ -136,17 +159,31 @@ export default function ViewDocument() {
     }
 
     const fileType = document.file_type || ""
+    console.log("Rendering content for fileType:", fileType, "URL:", document.file_url)
 
     if (fileType.includes("image")) {
+      console.log("Attempting to render Image from URL:", document.file_url)
       return (
         <View style={styles.imageContainer}>
-          <Image source={{ uri: document.file_url }} style={styles.imageViewer} resizeMode="contain" />
+          <Image
+            source={{ uri: document.file_url }}
+            style={styles.imageViewer}
+            resizeMode="contain"
+            onError={(e) => console.error("Image load error:", e.nativeEvent.error)}
+          />
         </View>
       )
     } else if (fileType.includes("pdf")) {
+      console.log("Attempting to render PDF from URL:", document.file_url)
       return (
         <View style={styles.pdfContainer}>
-          <PDFReader source={{ uri: document.file_url }} style={styles.pdfViewer} withPinchZoom withScroll />
+          <PDFReader
+            source={{ uri: document.file_url }}
+            style={styles.pdfViewer}
+            withPinchZoom
+            withScroll
+            onError={(error) => console.error("PDF load error:", error)}
+          />
         </View>
       )
     } else {
@@ -195,61 +232,77 @@ export default function ViewDocument() {
           )}
         </View>
 
-        {document && (
-          <View style={styles.documentInfoContainer}>
-            <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.documentInfoGradient}>
-              <View style={styles.documentTitleContainer}>
-                <View style={styles.documentIconContainer}>
-                  <LinearGradient
-                    colors={
-                      document.category === "medical"
-                        ? ["#4a00e0", "#8e2de2"]
-                        : document.category === "research"
-                          ? ["#00b09b", "#96c93d"]
-                          : document.category === "legal"
-                            ? ["#ff9966", "#ff5e62"]
-                            : document.category === "marketing"
-                              ? ["#fc4a1a", "#f7b733"]
-                              : ["#6a11cb", "#2575fc"]
-                    }
-                    style={styles.documentIcon}
-                  >
-                    {document.file_type?.includes("pdf") ? (
-                      <FontAwesome5 name="file-pdf" size={24} color="#FFFFFF" />
-                    ) : document.file_type?.includes("image") ? (
-                      <FontAwesome5 name="file-image" size={24} color="#FFFFFF" />
-                    ) : document.file_type?.includes("word") || document.file_type?.includes("document") ? (
-                      <FontAwesome5 name="file-word" size={24} color="#FFFFFF" />
-                    ) : (
-                      <FontAwesome5 name="file-alt" size={24} color="#FFFFFF" />
-                    )}
-                  </LinearGradient>
+        <ScrollView>
+          {document && (
+            <View style={styles.documentInfoContainer}>
+              <LinearGradient colors={["#141414", "#1E1E1E"]} style={styles.documentInfoGradient}>
+                <View style={styles.documentTitleContainer}>
+                  <View style={styles.documentIconContainer}>
+                    <LinearGradient
+                      colors={
+                        document.category === "medical"
+                          ? ["#4a00e0", "#8e2de2"]
+                          : document.category === "research"
+                            ? ["#00b09b", "#96c93d"]
+                            : document.category === "legal"
+                              ? ["#ff9966", "#ff5e62"]
+                              : document.category === "marketing"
+                                ? ["#fc4a1a", "#f7b733"]
+                                : ["#6a11cb", "#2575fc"]
+                      }
+                      style={styles.documentIcon}
+                    >
+                      {document.file_type?.includes("pdf") ? (
+                        <FontAwesome5 name="file-pdf" size={24} color="#FFFFFF" />
+                      ) : document.file_type?.includes("image") ? (
+                        <FontAwesome5 name="file-image" size={24} color="#FFFFFF" />
+                      ) : document.file_type?.includes("word") || document.file_type?.includes("document") ? (
+                        <FontAwesome5 name="file-word" size={24} color="#FFFFFF" />
+                      ) : (
+                        <FontAwesome5 name="file-alt" size={24} color="#FFFFFF" />
+                      )}
+                    </LinearGradient>
+                  </View>
+                  <View style={styles.documentTitleWrapper}>
+                    <Text style={styles.documentTitle} numberOfLines={2} ellipsizeMode="tail">
+                      {document.title}
+                    </Text>
+                    <Text style={styles.documentCategory}>
+                      {document.category?.charAt(0).toUpperCase() + document.category?.slice(1) || "Other"}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.documentTitleWrapper}>
-                  <Text style={styles.documentTitle}>{document.title}</Text>
-                  <Text style={styles.documentCategory}>
-                    {document.category?.charAt(0).toUpperCase() + document.category?.slice(1) || "Other"}
-                  </Text>
-                </View>
-              </View>
 
-              <View style={styles.documentMetaContainer}>
-                <View style={styles.documentMetaItem}>
-                  <Ionicons name="calendar-outline" size={16} color="#AAAAAA" />
-                  <Text style={styles.documentMetaText}>Uploaded: {formatDate(document.created_at)}</Text>
+                <View style={styles.documentMetaContainer}>
+                  <View style={styles.documentMetaItem}>
+                    <Ionicons name="calendar-outline" size={16} color="#AAAAAA" />
+                    <Text style={styles.documentMetaText}>Uploaded: {formatDate(document.created_at)}</Text>
+                  </View>
+                  <View style={styles.documentMetaItem}>
+                    <Ionicons name="document-outline" size={16} color="#AAAAAA" />
+                    <Text style={styles.documentMetaText}>
+                      {document.file_type?.split("/")[1]?.toUpperCase() || "FILE"} •{" "}
+                      {formatFileSize(document.file_size)}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.documentMetaItem}>
-                  <Ionicons name="document-outline" size={16} color="#AAAAAA" />
-                  <Text style={styles.documentMetaText}>
-                    {document.file_type?.split("/")[1]?.toUpperCase() || "FILE"} • {formatFileSize(document.file_size)}
-                  </Text>
-                </View>
-              </View>
-            </LinearGradient>
+              </LinearGradient>
+            </View>
+          )}
+
+          {document && (
+            <TouchableOpacity style={styles.createConsentButton} onPress={handleCreateConsent}>
+              <LinearGradient colors={["#6a11cb", "#2575fc"]} style={styles.createConsentButtonGradient}>
+                <Ionicons name="shield-checkmark-outline" size={22} color="#FFFFFF" style={{ marginRight: 10 }} />
+                <Text style={styles.createConsentButtonText}>Create Consent for this Document</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
+          <View style={styles.documentContentContainerOuter}>
+            <View style={styles.documentContentContainerInner}>{renderDocumentContent()}</View>
           </View>
-        )}
-
-        <View style={styles.documentContentContainer}>{renderDocumentContent()}</View>
+        </ScrollView>
       </SafeAreaView>
     </LinearGradient>
   )
@@ -279,6 +332,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#2A2A2A",
   },
   backButton: {
     width: 40,
@@ -303,6 +358,7 @@ const styles = StyleSheet.create({
   },
   documentInfoContainer: {
     marginHorizontal: 20,
+    marginTop: 15, // Added margin top
     marginBottom: 15,
     borderRadius: 12,
     overflow: "hidden",
@@ -360,22 +416,52 @@ const styles = StyleSheet.create({
     color: "#AAAAAA",
     marginLeft: 8,
   },
-  documentContentContainer: {
-    flex: 1,
-    backgroundColor: "#1A1A1A",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+  createConsentButton: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 12,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  createConsentButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+  },
+  createConsentButtonText: {
+    fontSize: 16,
+    fontFamily: "Poppins-Bold",
+    color: "#FFFFFF",
+  },
+  documentContentContainerOuter: {
+    // New style for outer container
+    flex: 1, // Make it take remaining space
+    marginHorizontal: 20,
+    marginBottom: 20, // Add some bottom margin
+    backgroundColor: "#1A1A1A",
+    borderRadius: 12, // Rounded corners for the content area
+    overflow: "hidden", // Clip child content (PDFReader/Image)
+    minHeight: height * 0.4, // Ensure it has some minimum height
+  },
+  documentContentContainerInner: {
+    // New style for inner container
+    flex: 1,
   },
   imageContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 10,
+    padding: 5, // Reduced padding
   },
   imageViewer: {
-    width: width - 40,
-    height: height * 0.6,
+    width: "100%", // Use percentage for responsiveness within container
+    height: "100%", // Use percentage
     borderRadius: 8,
   },
   pdfContainer: {
@@ -383,12 +469,15 @@ const styles = StyleSheet.create({
   },
   pdfViewer: {
     flex: 1,
+    width: "100%",
+    height: "100%",
   },
   unsupportedContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+    minHeight: 200, // Ensure it's visible
   },
   unsupportedText: {
     fontSize: 16,
@@ -403,6 +492,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+    minHeight: 200, // Ensure it's visible
   },
   noContentText: {
     fontSize: 16,
@@ -429,4 +519,3 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 })
-
